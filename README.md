@@ -31,7 +31,7 @@ Rscript -e 'install.packages("renv"); renv::restore()'
 Here’s a basic example to simulate a 2D tissue with 4 cell types:
 
 ```python
-from simspace import util
+from simspace import util, spatial
 
 # Define simulation parameters
 params = util.generate_random_parameters(
@@ -42,11 +42,11 @@ params = util.generate_random_parameters(
 # Run simulation
 sim = util.sim_from_params(
     params,
-    shape = (50, 50),
+    shape=(50, 50),
     num_iteration=4, 
     n_iter=6, 
-    custom_neighbor=generate_offsets(3, 'manhattan'),
-    seed=0
+    custom_neighbor=spatial.generate_offsets(3, 'manhattan'),
+    seed=42
 )
 
 # Visualize
