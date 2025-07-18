@@ -8,3 +8,6 @@ renv/staging/
 # Ignore all __pyc files
 __pycache__/
 *.pyc
+
+# Ignore all .DS_Store files within the project
+.DS_Store
