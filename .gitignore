@@ -1,0 +1,10 @@
+# Ignore the renv project library (machine-specific)
+renv/library/
+renv/staging/
+
+# Ignore the egg
+*.egg-info/
+
+# Ignore all __pyc files
+__pycache__/
+*.pyc

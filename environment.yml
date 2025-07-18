@@ -1,0 +1,20 @@
+name: simspace
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  # Python dependencies
+  - python=3.11.9
+  - numpy
+  - pandas
+  - scanpy
+  - seaborn
+  - matplotlib
+  - scipy
+  - typing
+  - colorcet
+  - esda
+  - libpysal
+  - scikit-learn
+  - umap-learn

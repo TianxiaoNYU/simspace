@@ -1,0 +1,291 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+import libpysal
+from esda.moran import Moran
+from esda.moran import Moran_Local
+from libpysal.weights import KNN
+from sklearn.neighbors import NearestNeighbors
+
+from scipy.spatial import distance
+from scipy.integrate import simpson
+
+def generate_offsets(distance, 
+                     method: str = 'manhattan',
+                     linear: bool = False):
+    """
+    Generate neighbor offsets based on the specified distance and method.
+
+    Args:
+        distance (int): Distance parameter.
+        method (str): Method to generate offsets ('manhattan' or 'euclidean').
+        linear (bool): Whether to include the cell itself in the offsets (default is False).
+
+    Returns:
+        list: List of generated neighbor offsets.
+
+    Raises:
+        ValueError: If the distance is not an integer or if the method is not recognized.
+    
+    Examples:
+        >>> from simspace.spatial import generate_offsets
+        >>> offsets = generate_offsets(1, 'manhattan')
+        >>> print(offsets)
+        [(-1, 0), (0, -1), (0, 1), (1, 0)]
+        >>> offsets = generate_offsets(2, 'euclidean', linear=True)
+        >>> print(offsets)
+        [(-2, 0), (-1, -1), (-1, 0), (-1, 1), (0, -2), (0, -1), (0, 1), (0, 2), (1, -1), (1, 0), (1, 1), (2, 0), (0, 0)]
+    """
+
+    if not isinstance(distance, int):
+        raise ValueError("The distance must be an integer.")
+    
+    if method not in ['manhattan', 'euclidean']:
+        raise ValueError("The method should be either 'manhattan' or 'euclidean'.")
+
+    offsets = []
+    for i in range(-distance, distance+1):
+        for j in range(-distance, distance+1):
+            if method == 'manhattan':
+                if abs(i) + abs(j) <= distance and (i, j) != (0, 0):
+                    offsets.append((i, j))
+            elif method == 'euclidean':
+                if np.sqrt(i**2 + j**2) <= distance and (i, j) != (0, 0):
+                    offsets.append((i, j))
+    if linear:
+        offsets.append((0, 0))  # Include the cell itself if linear is True
+    return offsets
+
+def generate_offsets3D(distance, method, linear=False):
+    """
+    Generate 3D neighbor offsets based on the specified distance and method.
+
+    Args:
+        distance (int): Distance parameter.
+        method (str): Method to generate offsets ('manhattan' or 'euclidean').
+        linear (bool): Whether to include the cell itself in the offsets (default is False).
+
+    Returns:
+        list: List of generated neighbor offsets.
+
+    Raises:
+        ValueError: If the distance is not an integer or if the method is not recognized.
+    
+    Examples:
+        >>> offsets = generate_offsets3D(3, 'manhattan')
+        >>> print(offsets)
+    """
+
+    if not isinstance(distance, int):
+        raise ValueError("The distance must be an integer.")
+    
+    if method not in ['manhattan', 'euclidean']:
+        raise ValueError("The method should be either 'manhattan' or 'euclidean'.")
+
+    offsets = []
+    for i in range(-distance, distance+1):
+        for j in range(-distance, distance+1):
+            for k in range(-distance, distance+1):
+                if method == 'manhattan':
+                    if abs(i) + abs(j) + abs(k)*2 <= distance and (i, j, k) != (0, 0, 0):
+                        offsets.append((i, j, k))
+                elif method == 'euclidean':
+                    if np.sqrt(i**2 + j**2 + 4*k**2) <= distance and (i, j, k) != (0, 0, 0):
+                        offsets.append((i, j, k))
+    if linear:
+        offsets.append((0, 0, 0))
+    return offsets
+
+## Calculate Moran's I
+def calculate_morans_I(data, coordinates):
+    """
+    Calculate Moran's I for a given dataset and spatial weights.
+
+    Parameters:
+    - data: pandas DataFrame or Series containing the variable of interest.
+    - weights: pysal spatial weights object.
+
+    Returns:
+    - morans_I: Moran's I value.
+    """
+    kd = libpysal.cg.KDTree(coordinates)
+    weights = KNN(kd, k=5)
+
+    # Calculate Moran's I
+    morans_I = Moran(data, weights)
+
+    return morans_I.I
+
+def integrate_morans_I(data, coordinates, typelist):
+
+    """
+    Calculate Moran's I for a given dataset and spatial weights.
+    """
+    mi_list = []
+    for type in typelist:
+        tmp = data == type
+        mi = calculate_morans_I(tmp, coordinates)
+        mi_list.append(mi)
+    return mi_list
+    
+
+
+## Calculate local Moran's I
+def calculate_local_morans_I(data, coordinates, k=20):
+    """
+    Calculate local Moran's I for a given dataset and spatial weights.
+
+    Parameters:
+    - data: pandas DataFrame or Series containing the variable of interest.
+    - coordinates: numpy array or pandas DataFrame containing the spatial coordinates.
+    - k: number of nearest neighbors to consider for spatial weights.
+
+    Returns:
+    - local_morans_I: Local Moran's I values.
+    """
+    kd = libpysal.cg.KDTree(coordinates)
+    weights = libpysal.weights.KNN(kd, k=k)
+
+    # Calculate local Moran's I
+    local_morans_I = Moran_Local(data, weights)
+
+    return local_morans_I.Is
+
+## Plot local Moran's I
+def plot_local_morans_I(data, coordinates, local_morans_I, ax=None):
+    
+    """
+    Plot local Moran's I values on a scatter plot.
+
+    Parameters:
+    - data: pandas DataFrame or Series containing the variable of interest.
+    - coordinates: numpy array or pandas DataFrame containing the spatial coordinates.
+    - local_morans_I: Local Moran's I values.
+    - ax: matplotlib axis object to plot on.
+
+    Returns:
+    - ax: matplotlib axis object.
+    """
+    if ax is None:
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+    else:
+        ax1, ax2 = ax
+
+    # Plot data
+    ax1.scatter(coordinates.iloc[:, 0], coordinates.iloc[:, 1], c=data, cmap='viridis', s=5)
+
+    # Plot local Moran's I values
+    ax2.scatter(coordinates.iloc[:, 0], coordinates.iloc[:, 1], c=local_morans_I, s=5, alpha=0.75)
+
+    return ax1, ax2
+
+## Calculate the local entropy
+def calculate_local_entropy(data, coordinates, k=20):
+    """
+    Calculate the local entropy for a given dataset and spatial coordinates.
+
+    Parameters:
+    - data: pandas DataFrame or Series containing the variable of interest.
+    - coordinates: numpy array or pandas DataFrame containing the spatial coordinates.
+    - k: number of nearest neighbors to consider for spatial weights.
+
+    Returns:
+    - local_entropy: Local entropy values.
+    """
+    data.reset_index(drop=True, inplace=True)
+    nbrs = NearestNeighbors(n_neighbors=k).fit(coordinates)
+    _, indices = nbrs.kneighbors(coordinates)
+
+    # Calculate the entropy for each cell
+    local_entropy = []
+    for i in range(len(data)):
+        neighbors = indices[i]
+        neighbor_values = data[neighbors]
+        _, value_counts = np.unique(neighbor_values, return_counts=True)
+        probabilities = value_counts / np.sum(value_counts)
+        entropy = -np.sum(probabilities * np.log2(probabilities))
+        local_entropy.append(entropy)
+
+    return local_entropy
+
+## histogram of local entropy
+def plot_local_entropy(local_entropy, ax=None):
+    """
+    Plot a histogram of local entropy values.
+
+    Parameters:
+    - local_entropy: Local entropy values.
+    - ax: matplotlib axis object to plot on.
+
+    Returns:
+    - ax: matplotlib axis object.
+    """
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+
+    ax.hist(local_entropy, bins=50, alpha=0.75)
+    ax.set_xlabel('Local entropy')
+    ax.set_ylabel('Frequency')
+
+    return ax
+
+## Calculate the Ripley’s K-Function
+def calculate_ripley_k(data, coordinates, typelist):
+    mi_list = []
+    for type in typelist:
+        tmp = data == type
+        mi = calculate_morans_I(tmp, coordinates)
+        mi_list.append(mi)
+    return mi_list
+
+def divide_rectangle_into_squares(x_min, x_max, y_min, y_max, square_length, perturb=0.0):
+    """
+    Divide a rectangle into squares of a given length.
+
+    Parameters:
+    - x_min: Minimum x-coordinate of the rectangle.
+    - x_max: Maximum x-coordinate of the rectangle.
+    - y_min: Minimum y-coordinate of the rectangle.
+    - y_max: Maximum y-coordinate of the rectangle.
+    - square_length: Length of the square.
+    - perturbation: Amount of random perturbation to add to the square coordinates.
+
+    Returns:
+    - squares: List of tuples containing the min/max x and y coordinates of the squares.
+    """
+    if square_length <= 0:
+        raise ValueError("Square length must be greater than zero.")
+    
+    squares = []
+    x_coords = np.arange(x_min, x_max, square_length)
+    y_coords = np.arange(y_min, y_max, square_length)
+    
+    for x in x_coords:
+        for y in y_coords:
+            square = (x, min(x + square_length, x_max), y, min(y + square_length, y_max))
+            squares.append(square)
+
+    if perturb > 0:
+        np.random.seed(0)
+        for x in x_coords:
+            for y in y_coords:
+                # x_p = x + np.random.uniform(-perturb, perturb)
+                # y_p = y + np.random.uniform(-perturb, perturb)
+                square = (x+perturb, 
+                          min(x+perturb + square_length, x_max), 
+                          y, 
+                          min(y + square_length, y_max))
+                squares.append(square)
+                square = (x, 
+                          min(x + square_length, x_max), 
+                          y+perturb, 
+                          min(y+perturb + square_length, y_max))
+                squares.append(square)
+                square = (x+perturb, 
+                          min(x+perturb + square_length, x_max), 
+                          y+perturb, 
+                          min(y+perturb + square_length, y_max))
+                squares.append(square)
+    
+    return squares
