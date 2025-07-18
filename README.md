@@ -7,7 +7,7 @@
 To install the latest version of SimSpace, we recommend using conda to setup the environment:
 
 ```bash
-git clone https://github.com/tianxiao-zhao/simspace.git
+git clone https://github.com/TianxiaoNYU/simspace.git
 cd simspace
 conda env create -f environment.yml
 conda activate simspace
