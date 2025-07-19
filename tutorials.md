@@ -56,7 +56,7 @@ In this setting, you provide a real spatial omics dataset as the reference. SimS
 
 ### 📌 Example
 
-👉 See [examples/reference_based.ipynb](examples/reference_based.ipynb) and [examples/spatial_fitting.ipynb](examples/spatial_fitting.ipynb) for code.
+👉 See [examples/reference_based_Xenium.ipynb](examples/reference_based_Xenium.ipynb), [examples/reference_based_CODEX.ipynb](examples/reference_based_CODEX.ipynb), and [examples/spatial_fitting.ipynb](examples/spatial_fitting.ipynb) for code.
 
 
 ## 🙋 Need Help?
