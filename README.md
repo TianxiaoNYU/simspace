@@ -48,7 +48,7 @@ These resources walk through how to configure and run simulations as well as vis
 
 ## 🚀 Quick Start
 
-Here’s a basic example to simulate a 2D tissue with 2 spatial niches and 8 cell types:
+Here’s a basic example to simulate a 2D tissue with 3 spatial niches and 8 cell types:
 
 ```python
 from simspace import util, spatial
@@ -62,9 +62,7 @@ params = util.generate_random_parameters(
 # Run simulation
 sim = util.sim_from_params(
     params,
-    # shape of the simulation grid
-    shape=(50, 50),    
-    # custom_neighbor argument specifies the spatial connectivity
+    shape=(50, 50),    # shape of the simulation grid
     custom_neighbor=spatial.generate_offsets(3, 'manhattan'),
     seed=42
 )
