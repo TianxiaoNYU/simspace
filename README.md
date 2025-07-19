@@ -2,6 +2,8 @@
 
 **SimSpace** is a Python framework for simulating spatial omics data with realistic cellular distributions and tissue organization. Designed for benchmarking spatial analysis methods, SimSpace enables generation of synthetic datasets that preserve spatial autocorrelation, cell-cell interactions, and spatial proximities using a Markov Random Field (MRF) model.
 
+![SimSpace Workflow](images/overview.png)
+
 ## 📦 Installation
 
 To install the latest version of SimSpace, we recommend using conda to setup the environment:
