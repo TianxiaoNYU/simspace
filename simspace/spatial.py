@@ -8,9 +8,6 @@ from esda.moran import Moran_Local
 from libpysal.weights import KNN
 from sklearn.neighbors import NearestNeighbors
 
-from scipy.spatial import distance
-from scipy.integrate import simpson
-
 def generate_offsets(distance, 
                      method: str = 'manhattan',
                      linear: bool = False):
@@ -130,7 +127,6 @@ def integrate_morans_I(data, coordinates, typelist):
     return mi_list
     
 
-
 ## Calculate local Moran's I
 def calculate_local_morans_I(data, coordinates, k=20):
     """
@@ -230,62 +226,13 @@ def plot_local_entropy(local_entropy, ax=None):
 
     return ax
 
-## Calculate the Ripley’s K-Function
-def calculate_ripley_k(data, coordinates, typelist):
-    mi_list = []
-    for type in typelist:
-        tmp = data == type
-        mi = calculate_morans_I(tmp, coordinates)
-        mi_list.append(mi)
-    return mi_list
-
-def divide_rectangle_into_squares(x_min, x_max, y_min, y_max, square_length, perturb=0.0):
+def spatial_stat(data, coordinates, typelist):
     """
-    Divide a rectangle into squares of a given length.
+    Calculate moran's I and local entropy for a given dataset.
 
-    Parameters:
-    - x_min: Minimum x-coordinate of the rectangle.
-    - x_max: Maximum x-coordinate of the rectangle.
-    - y_min: Minimum y-coordinate of the rectangle.
-    - y_max: Maximum y-coordinate of the rectangle.
-    - square_length: Length of the square.
-    - perturbation: Amount of random perturbation to add to the square coordinates.
-
-    Returns:
-    - squares: List of tuples containing the min/max x and y coordinates of the squares.
     """
-    if square_length <= 0:
-        raise ValueError("Square length must be greater than zero.")
-    
-    squares = []
-    x_coords = np.arange(x_min, x_max, square_length)
-    y_coords = np.arange(y_min, y_max, square_length)
-    
-    for x in x_coords:
-        for y in y_coords:
-            square = (x, min(x + square_length, x_max), y, min(y + square_length, y_max))
-            squares.append(square)
+    morans_I = integrate_morans_I(data, coordinates, typelist)
+    local_entropy = calculate_local_entropy(data, coordinates)
 
-    if perturb > 0:
-        np.random.seed(0)
-        for x in x_coords:
-            for y in y_coords:
-                # x_p = x + np.random.uniform(-perturb, perturb)
-                # y_p = y + np.random.uniform(-perturb, perturb)
-                square = (x+perturb, 
-                          min(x+perturb + square_length, x_max), 
-                          y, 
-                          min(y + square_length, y_max))
-                squares.append(square)
-                square = (x, 
-                          min(x + square_length, x_max), 
-                          y+perturb, 
-                          min(y+perturb + square_length, y_max))
-                squares.append(square)
-                square = (x+perturb, 
-                          min(x+perturb + square_length, x_max), 
-                          y+perturb, 
-                          min(y+perturb + square_length, y_max))
-                squares.append(square)
-    
-    return squares
+    res = np.array([morans_I, local_entropy])
+    return res

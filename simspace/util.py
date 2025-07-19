@@ -6,7 +6,7 @@ import json
 import numpy as np
 import pandas as pd
 
-import simspace
+import simspace as ss
 
 # Function to save parameters to a JSON file
 def save_params(params, output_file):
@@ -60,6 +60,18 @@ def save_params(params, output_file):
 
 # Function to load parameters from a JSON file
 def load_params(input_file):
+    """
+    Load genetic algorithm parameters from a JSON file.
+    Args:
+        input_file (str): Path to the input JSON file.
+    Returns:
+        dict: Dictionary containing parameter names and values.
+    Raises:
+        FileNotFoundError: If the input file does not exist.
+        ValueError: If the JSON file cannot be decoded or if the parameters are not in the expected format.
+    Note:
+        The function expects the JSON file to contain a dictionary with specific keys.
+    """
     if not os.path.exists(input_file):
         raise FileNotFoundError(f"File {input_file} does not exist.")
     try:
@@ -73,17 +85,27 @@ def load_params(input_file):
 def generate_random_parameters(
         n_group, 
         n_state, 
+        theta=0.8,
+        niche_theta=0.5,
+        density_max=0.4,
+        density_min=0.01,
+        phi_max=5,
+        phi_min=4.4,
         seed=0,
-        ):
+    ):
     """
     Generate random parameters for the simulation.
 
     Args:
         n_group (int): Number of groups.
         n_state (int): Number of states.
-        n_subgroup (int): Number of subgroups.
-        n_replicates (int): Number of replicates.
-        n_neighbors (int): Number of neighbors.
+        theta (float): Maximum value for theta. Defaults to 0.8.
+        niche_theta (float): Maximum value for niche theta. Defaults to 0.5.
+        density_max (float): Maximum value for density replicates. Defaults to 0.4
+        density_min (float): Minimum value for density replicates. Defaults to 0.01.
+        phi_max (float): Maximum value for phi replicates. Defaults to 5.
+        phi_min (float): Minimum value for phi replicates. Defaults to 4.4
+        seed (int): Random seed for reproducibility. Defaults to 0.
 
     Returns:
         dict: Dictionary containing the generated parameters.
@@ -96,29 +118,29 @@ def generate_random_parameters(
     np.random.seed(seed)
     theta_list = []
     for _ in range(n_group):
-        theta = np.random.uniform(-0.8, 0.8, size=(n_state-1)*n_state//2)
+        theta = np.random.uniform(-theta, theta, size=(n_state-1)*n_state//2)
         theta_list.append(theta)
     parameters = {
         'n_group': n_group,
         'n_state': n_state,
-        'niche_theta': np.random.uniform(-0.5, 0.5, size=(n_group-1)*n_group//2),
+        'niche_theta': np.random.uniform(-niche_theta, niche_theta, size=(n_group-1)*n_group//2),
         'theta_list': theta_list,
-        'density_replicates': np.random.uniform(0.01, 0.4, size=n_state),
-        'phi_replicates': np.random.uniform(4.4, 5),
+        'density_replicates': np.random.uniform(density_min, density_max, size=n_state),
+        'phi_replicates': np.random.uniform(phi_min, phi_max),
     }
 
     return parameters
 
 # Function to simulate from parameters
 def sim_from_params(
-    parameters: dict, 
-    shape: tuple, 
-    num_iteration: int, 
-    n_iter: int, 
-    custom_neighbor: callable, 
-    step: float = 0.2,
-    seed: int = 0
-):
+        parameters: dict, 
+        shape: tuple = (100, 100),
+        num_iteration: int = 4, 
+        n_iter: int = 6, 
+        custom_neighbor: list = ss.spatial.generate_offsets(3), 
+        step: float = 0.2,
+        seed: int = 0
+    ):
     n_group = parameters['n_group']
     n_state = parameters['n_state']
     
@@ -139,7 +161,7 @@ def sim_from_params(
     density_replicates[density_replicates < 0] = 0
     phi_replicates = parameters['phi_replicates']
 
-    Sim = simspace.SimSpace(
+    Sim = ss.SimSpace(
         shape = shape,
         num_states = n_state,
         num_iterations= num_iteration,
@@ -158,13 +180,13 @@ def sim_from_params(
 
 # Function to simulate from saved json files
 def sim_from_json(
-    input_file: str, 
-    shape: tuple, 
-    num_iteration: int, 
-    n_iter: int, 
-    custom_neighbor: callable, 
-    seed: int = 0
-):
+        input_file: str, 
+        shape: tuple, 
+        num_iteration: int, 
+        n_iter: int, 
+        custom_neighbor: callable, 
+        seed: int = 0
+    ):
     if not os.path.exists(input_file):
         raise FileNotFoundError(f"File {input_file} does not exist.")
     try:
@@ -195,7 +217,7 @@ def sim_from_json(
     density_replicates[density_replicates < 0] = 0
     phi_replicates = parameters['phi_replicates']
 
-    Sim = simspace.SimSpace(
+    Sim = ss.SimSpace(
         shape = shape,
         num_states = n_state,
         num_iterations= num_iteration,

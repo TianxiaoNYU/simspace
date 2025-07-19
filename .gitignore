@@ -19,3 +19,11 @@ __pycache__/
 *.swp
 *.swo
 *.~ 
+
+# Ignore tmp test files
+examples/figures.ipynb
+.pytest_cache/
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+.ipynb_checkpoints/*

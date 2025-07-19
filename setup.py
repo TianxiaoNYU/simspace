@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="simspace",
-    version="0.1.0",
+    version="0.2.0",
     description="SimSpace: a comprehensive in-silico spatial omics data simulation framework",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -20,8 +20,7 @@ setup(
         'scikit-learn >=1.7.0',
         'colorcet >=3.1.0',
         'esda >=2.7.1',
-        'libpysal >=4.12.1',
-        'umap-learn >=0.5.9'
+        'libpysal >=4.12.1'
     ],
     extras_require={
         "dev": ["pytest"]
