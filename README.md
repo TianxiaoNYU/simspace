@@ -37,6 +37,15 @@ Rscript -e 'install.packages("renv"); renv::restore()'
 ```
 This will install all required R dependencies in a reproducible, isolated environment.
 
+## 📘 Tutorials
+
+To get started with SimSpace, we provide detailed tutorials covering both reference-based and reference-free simulation modes.
+
+- **Step-by-step tutorials** can be found in [`tutorials.md`](./tutorials.md)
+- **Executable notebook examples** are located in the [`examples/`](./examples/) directory
+
+These resources walk through how to configure and run simulations as well as visualize outputs.
+
 ## 🚀 Quick Start
 
 Here’s a basic example to simulate a 2D tissue with 2 spatial niches and 8 cell types:
