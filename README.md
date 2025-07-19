@@ -26,18 +26,26 @@ pip install simspace
 
 ### 🧬 Optional: Setting Up the R Environment for Omics Simulation
 
-Besides built-in functions, SimSpace also supports external omics profile simulation via R-based tools including **scDesign3**, **SRTsim**, and **splatter**. You can either install these packages manually or use the [`renv`](https://rstudio.github.io/renv/) package to recreate the exact R environment used by SimSpace.
+SimSpace supports external omics profile simulation via R-based tools, including **scDesign3**, **SRTsim**, and **splatter**. These tools are optional but recommended if you want to simulate gene expression profiles in addition to spatial patterns.
 
-#### Steps:
+To enable this functionality, please install the required R packages manually in your system R environment:
 
-1. Ensure that **R (version 4.4 or compatible)** is installed on your system.
-2. Navigate to the R project folder and restore the environment:
-
-```bash
-cd simspace/R
-Rscript -e 'install.packages("renv"); renv::restore()'
+Steps:
+1.	Ensure that R (version 4.4 or compatible) is installed on your system. You can download it from CRAN.
+2.	Open an R session and install the required packages:
+```R
+if (!require("devtools", quietly = TRUE))
+    install.packages("devtools")
+devtools::install_github("SONGDONGYUAN1994/scDesign3")
+devtools::install_github("xzhoulab/SRTsim")
 ```
-This will install all required R dependencies in a reproducible, isolated environment.
+```R
+if (!require("devtools", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install(c("splatter"))
+```
+
+Once installed, SimSpace will automatically use these tools when relevant R-based simulations are requested.
 
 ## 📘 Tutorials
 
