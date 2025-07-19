@@ -9,9 +9,11 @@ To install the latest version of SimSpace, we recommend using conda to setup the
 ```bash
 git clone https://github.com/TianxiaoNYU/simspace.git
 cd simspace
+# Create a conda environment for simspace
 conda env create -f environment.yml
 conda activate simspace
-pip install -e .
+# Install simspace from PyPi
+pip install simspace
 ```
 
 ### 🧬 Setting up the R environment

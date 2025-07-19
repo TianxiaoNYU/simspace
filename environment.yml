@@ -6,15 +6,14 @@ channels:
 dependencies:
   # Python dependencies
   - python=3.11.9
-  - numpy
-  - pandas
-  - scanpy
-  - seaborn
-  - matplotlib
-  - scipy
-  - typing
-  - colorcet
-  - esda
-  - libpysal
-  - scikit-learn
-  - umap-learn
+  # - simspace
+  - numpy>=2.2.6
+  - scipy>=1.15.2
+  - pandas>=2.3.1
+  - matplotlib-base>=3.10.3
+  - seaborn>=0.13.2
+  - scikit-learn>=1.7.0
+  - colorcet>=3.1.0
+  - esda>=2.7.1
+  - libpysal>=4.12.1
+  - umap-learn>=0.5.9

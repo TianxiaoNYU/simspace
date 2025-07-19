@@ -1,13 +1,21 @@
-# Ignore the renv project library (machine-specific)
+# Ignore R environment files
 renv/library/
 renv/staging/
 
-# Ignore the egg
+# Ignore Python build artifacts
 *.egg-info/
+build/
+dist/
 
-# Ignore all __pyc files
+# Ignore Python bytecode
 __pycache__/
 *.pyc
+*.pyo
 
-# Ignore all .DS_Store files within the project
+# Ignore macOS metadata
 .DS_Store
+
+# Ignore temporary editor or OS files
+*.swp
+*.swo
+*.~ 
