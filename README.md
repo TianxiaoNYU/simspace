@@ -1,6 +1,6 @@
 # SimSpace
 
-**SimSpace** is a Python framework for simulating spatial omics data with realistic cellular distributions and tissue organization. Designed for benchmarking spatial analysis methods, SimSpace enables generation of synthetic datasets that preserve spatial autocorrelation, cell-cell interactions, and reference-based spatial layouts using a Markov Random Field (MRF) model.
+**SimSpace** is a Python framework for simulating spatial omics data with realistic cellular distributions and tissue organization. Designed for benchmarking spatial analysis methods, SimSpace enables generation of synthetic datasets that preserve spatial autocorrelation, cell-cell interactions, and spatial proximities using a Markov Random Field (MRF) model.
 
 ## 📦 Installation
 
@@ -24,7 +24,7 @@ pip install simspace
 
 ### 🧬 Optional: Setting Up the R Environment for Omics Simulation
 
-SimSpace supports omics profile simulation via R-based tools including **scDesign3**, **SRTsim**, and **splatter**. You can either install these packages manually or use the [`renv`](https://rstudio.github.io/renv/) package to recreate the exact R environment used by SimSpace.
+Besides built-in functions, SimSpace also supports external omics profile simulation via R-based tools including **scDesign3**, **SRTsim**, and **splatter**. You can either install these packages manually or use the [`renv`](https://rstudio.github.io/renv/) package to recreate the exact R environment used by SimSpace.
 
 #### Steps:
 
@@ -76,6 +76,6 @@ sim.plot()
 Developed by Tianxiao Zhao at NYU Grossman School of Medicine. Should you have any questions, please contact Tianxiao Zhao at Tianxiao.Zhao@nyulangone.org
 
 ## 🔗 References
-If you use SimSpace in your work, please cite:
+If you use SimSpace in your work, please cite the work on BioRxiv:
 
 
