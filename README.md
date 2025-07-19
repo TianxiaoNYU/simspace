@@ -8,29 +8,38 @@ To install the latest version of SimSpace, we recommend using conda to setup the
 
 ```bash
 git clone https://github.com/TianxiaoNYU/simspace.git
+```
+
+- Create a conda environment for simspace
+```bash
 cd simspace
-# Create a conda environment for simspace
 conda env create -f environment.yml
 conda activate simspace
-# Install simspace from PyPi
+```
+
+- Install simspace from PyPi
+```bash
 pip install simspace
 ```
 
-### 🧬 Setting up the R environment
+### 🧬 Optional: Setting Up the R Environment for Omics Simulation
 
-To reproduce the R environment required for SimSpace omics simulation:
+SimSpace supports omics profile simulation via R-based tools including **scDesign3**, **SRTsim**, and **splatter**. You can either install these packages manually or use the [`renv`](https://rstudio.github.io/renv/) package to recreate the exact R environment used by SimSpace.
 
-1. Make sure you have R (version 4.4 or compatible) installed.
-2. From the project folder:
+#### Steps:
+
+1. Ensure that **R (version 4.4 or compatible)** is installed on your system.
+2. Navigate to the R project folder and restore the environment:
 
 ```bash
 cd simspace/R
 Rscript -e 'install.packages("renv"); renv::restore()'
 ```
+This will install all required R dependencies in a reproducible, isolated environment.
 
 ## 🚀 Quick Start
 
-Here’s a basic example to simulate a 2D tissue with 4 cell types:
+Here’s a basic example to simulate a 2D tissue with 2 spatial niches and 8 cell types:
 
 ```python
 from simspace import util, spatial
