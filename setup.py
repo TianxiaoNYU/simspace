@@ -5,12 +5,21 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="simspace",
-    version="0.2.0",
+    version="0.2.1",
     description="SimSpace: a comprehensive in-silico spatial omics data simulation framework",
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="Tianxiao Zhao",
     packages=find_packages(include=["simspace", "simspace.*"]),
+    include_package_data=True,
+    package_data={
+        "simspace": [
+            "R/*.R",
+            "R/.Rprofile",
+            "R/renv.lock",
+            "R/renv/activate.R",
+        ],
+    },
     install_requires=[
         'numpy >=2.2.6',
         'scipy >=1.15.2',
