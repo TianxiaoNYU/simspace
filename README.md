@@ -62,9 +62,9 @@ params = util.generate_random_parameters(
 # Run simulation
 sim = util.sim_from_params(
     params,
-    shape=(50, 50),
-    num_iteration=4, 
-    n_iter=6, 
+    # shape of the simulation grid
+    shape=(50, 50),    
+    # custom_neighbor argument specifies the spatial connectivity
     custom_neighbor=spatial.generate_offsets(3, 'manhattan'),
     seed=42
 )

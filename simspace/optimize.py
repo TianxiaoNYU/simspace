@@ -127,11 +127,15 @@ def _parallel_fitness_evaluation(
         custom_neighbor,
         num_iterations,
         n_iter,
+        parallel=True,
         replicate = 1):
     """
     Evaluate the fitness of the entire population in parallel.
     """
-    cpu_count = _get_cpu_count()
+    if parallel:
+        cpu_count = _get_cpu_count()
+    else:
+        cpu_count = 1
     with Pool(processes=cpu_count) as pool:
         fitness_scores = pool.starmap(_fitness_function, 
                                       [(ind, shape, custom_neighbor, num_iterations, n_iter, target, replicate) for ind in population])
@@ -212,6 +216,7 @@ def spatial_fit(
         n_iter: int=6,
         replicate: int=1,
         seed: int=0,
+        parallel: bool=True,
         verbose: bool=True
         ):
     """
@@ -230,6 +235,7 @@ def spatial_fit(
         n_iter (int): Number of iterations for the simulation (default is 6).
         replicate (int): Number of replicates for the simulation (default is 1).
         seed (int): Random seed for reproducibility (default is 0).
+        parallel (bool): Whether to run the fitness evaluation in parallel (default is True).
         verbose (bool): Whether to print progress information (default is True).
     
     Returns:
@@ -238,6 +244,11 @@ def spatial_fit(
     Raises:
         ValueError: If the target vector is not a list or if the population size is not a positive integer.
     """
+    if not isinstance(target, list):
+        raise ValueError("Target should be a list containing local entropy and Moran's I values.")
+    if not isinstance(population_size, int) or population_size <= 0:
+        raise ValueError("Population size should be a positive integer.")
+
     ## Define (or load) the initial population, which is the simulation parameters
     population = _initialize_population(population_size, n_group, n_state, seed=seed)
 
@@ -254,7 +265,8 @@ def spatial_fit(
             shape=shape,
             custom_neighbor=custom_neighbor,
             num_iterations=num_iterations,
-            n_iter=n_iter
+            n_iter=n_iter,
+            parallel=parallel
             )
         
         # Track the best solution
