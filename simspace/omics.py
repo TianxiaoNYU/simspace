@@ -107,6 +107,7 @@ def simOmics(omics_meta: pd.DataFrame,
              ) -> pd.DataFrame:
     """
     Simulate the omics data based on the metadata and cell metadata. 
+
     Args:
         omics_meta (pd.DataFrame): The metadata of the omics data, which should contain the following columns:
             - GeneID: The index of the gene.
@@ -115,11 +116,15 @@ def simOmics(omics_meta: pd.DataFrame,
             - Type_{cell_type}: The mean expression level of the gene in the corresponding cell type.
         meta (pd.DataFrame): The metadata of the cells, which should contain a column named 'state' representing the cell types.
         seed (int): The random seed for reproducibility.
+
     Returns:
         pd.DataFrame: A DataFrame containing the simulated omics data, with columns:
             - Gene_{gene_id}: The expression level of the gene in each cell.
+
     Raises:
         ValueError: If the metadata does not contain the 'state' column.
+        TypeError: If the input data is not a DataFrame.
+
     Examples:
         >>> omics_meta = pd.DataFrame({
         ...     'GeneID': [0, 1, 2],
@@ -132,6 +137,10 @@ def simOmics(omics_meta: pd.DataFrame,
         >>> omics_data = simOmics(omics_meta, meta, seed=42)
         >>> print(omics_data.head())
     """
+    if 'state' not in meta.columns:
+        raise ValueError('The metadata does not contain the "state" column. Please check the column names.')
+    if not isinstance(omics_meta, pd.DataFrame) or not isinstance(meta, pd.DataFrame):
+        raise TypeError('The input data must be a pandas DataFrame.')
     
     np.random.seed(seed)
     
@@ -161,6 +170,7 @@ def simSpatialOmics(gene_data: pd.DataFrame,
                     ) -> pd.DataFrame:
     """
     Simulate the spatial omics data
+
     Args:
         gene_data (pd.DataFrame): The gene expression data, with cells as rows and genes as columns.
         gene_meta (pd.DataFrame): The metadata of the genes, which should contain the following columns:
@@ -172,10 +182,13 @@ def simSpatialOmics(gene_data: pd.DataFrame,
         spatial_effect (float): The factor by which to increase or decrease the expression level based on spatial effects.
         se_threshold (float): The threshold for spatial effect application.
         seed (int): The random seed for reproducibility.
+
     Returns:
         pd.DataFrame: A DataFrame containing the simulated spatial omics data, with cells as rows and genes as columns.
+
     Raises:
         ValueError: If the spatial effect is not greater than 1, or if the cell metadata does not contain the coordinates or cell types.
+    
     Examples:
         >>> gene_data = pd.DataFrame({
         ...     'Gene_0': [10, 20, 30],
@@ -243,24 +256,41 @@ def simSpatialOmics(gene_data: pd.DataFrame,
                 
     return output_data
 
-def run_splatter(cells_meta, 
+def run_splatter(new_meta, 
                  ngene = 1000, 
-                 r_script_path=os.path.join(os.path.dirname(__file__), "R/splatter.R")):
+                 r_script_path=None):
     """
     Run the splatter simulation to generate synthetic single-cell RNA-seq data.
+
     Args:
-        cells_meta (pd.DataFrame): A DataFrame containing the metadata of the cells, which should include columns like 'x', 'y', and 'state'.
+        new_meta (pd.DataFrame): A DataFrame containing simulated spatial metadata for omics simulation, which is derived from the .meta of the simspace object.
         ngene (int): The number of genes to simulate.
-        r_script_path (str): The path to the R script that performs the splatter simulation.
+        r_script_path (str): The path to the R script that performs the splatter simulation. Default is None, which uses the script of simspace package.
+    
     Returns:
         tuple: A tuple containing two DataFrames:
             - splatter_data: The simulated gene expression data.
             - splatter_meta: The metadata of the simulated cells.
+    
+    Raises:
+        FileNotFoundError: If the R script file does not exist.
+        Exception: If the R script fails to execute or returns an error.
+    
+    Examples:
+        >>> splatter_data, splatter_meta = run_splatter(sim.meta, ngene=1000) # sim is simulated simspace object
+        >>> print(splatter_data.head())
+        >>> print(splatter_meta.head())
     """
+
+    if r_script_path is None:
+        r_script_path = os.path.join(os.path.dirname(__file__), "R/splatter.R")
+    if not os.path.exists(r_script_path):
+        raise FileNotFoundError(f"The R script {r_script_path} does not exist. Please provide a valid path.")
+    
     if not os.path.exists("./tmp"):
         os.makedirs("./tmp")
         print("Temporary directory created.")
-    cells_meta.to_csv("./tmp/cells_meta.csv", index=False)
+    new_meta.to_csv("./tmp/cells_meta.csv", index=False)
         
     result = subprocess.run(
         ["Rscript", r_script_path, "./tmp/cells_meta.csv", ngene],
@@ -289,10 +319,39 @@ def splatter_fit(count_path,
                  meta_path, 
                  group_col, 
                  n_cells = 2000,
-                 r_script_path=os.path.join(os.path.dirname(__file__), "R/splatter_fit.R")):
+                 r_script_path=None):
     """
-    Fit the splatter model to the data.
+    Fit the splatter model to the given reference data and metadata to simulate new omics data.
+
+    Args:
+        count_path (str): The path to the count matrix file.
+        meta_path (str): The path to the metadata file.
+        group_col (str): The column name in the metadata that contains the grouping information.
+        n_cells (int): The number of cells to simulate. Should match the number of cells in the spatial simulation results.
+        r_script_path (str): The path to the R script that performs the splatter fitting. Default is None, which uses the script of simspace package.
+    
+    Returns:
+        tuple: A tuple containing two DataFrames:
+            - splatter_data: The simulated gene expression data.
+            - splatter_meta: The metadata of the simulated cells.
+    
+    Raises:
+        FileNotFoundError: If the R script file does not exist.
+        Exception: If the R script fails to execute or returns an error.
+    
+    Examples:
+        >>> splatter_data, splatter_meta = splatter_fit("path/to/count.csv",
+        ...                                              "path/to/meta.csv",
+        ...                                              "group_column",
+        ...                                              n_cells=2000)
+        >>> print(splatter_data.head())
+        >>> print(splatter_meta.head())
     """
+    if r_script_path is None:
+        r_script_path = os.path.join(os.path.dirname(__file__), "R/splatter_fit.R")
+    if not os.path.exists(r_script_path):
+        raise FileNotFoundError(f"The R script {r_script_path} does not exist. Please provide a valid path.")
+
     if not os.path.exists("./tmp"):
         os.makedirs("./tmp")
         print("Temporary directory created.")
@@ -324,11 +383,40 @@ def scdesign_fit(count_path,
                  spatial_y,
                  new_meta,
                  seed = 0,
-                #  r_script_path="r_scripts/scdesign.R", Update in future
-                 r_script_path=os.path.join(os.path.dirname(__file__), "R/scdesign.R")):
+                 r_script_path=None):
     """
-    Fit the splatter model to the data.
+    Fit the scdesign model to the given reference data and metadata to simulate new omics data.
+    Args:
+        count_path (str): The path to the count matrix file.
+        meta_path (str): The path to the metadata file.
+        group_col (str): The column name in the metadata that contains the grouping information.
+        spatial_x (str): The column name in the metadata that contains the x-coordinate of the spatial location.
+        spatial_y (str): The column name in the metadata that contains the y-coordinate of the spatial location.
+        new_meta (pd.DataFrame): A DataFrame containing simulated spatial metadata for omics simulation, which is derived from the .meta of the simspace object.
+        seed (int): The random seed for reproducibility.
+        r_script_path (str): The path to the R script that performs the scDesign fitting. Default is None, which uses the script of simspace package.
+    Returns:
+        tuple: A tuple containing two DataFrames:
+            - sim_data: The simulated gene expression data.
+            - sim_meta: The metadata of the simulated cells.
+    Raises:
+        FileNotFoundError: If the R script file does not exist.
+        Exception: If the R script fails to execute or returns an error.
+    Examples:
+        >>> sim_data, sim_meta = scdesign_fit("path/to/count.csv",
+        ...                              "path/to/meta.csv",
+        ...                              "group_column",
+        ...                              "x_coordinate",
+        ...                              "y_coordinate",
+        ...                              new_meta=sim.meta, # sim is simulated simspace object
+        ...                              seed=42)
+        >>> print(sim_data.head())
+        >>> print(sim_meta.head())
     """
+    if r_script_path is None:
+        r_script_path = os.path.join(os.path.dirname(__file__), "R/scdesign.R")
+    if not os.path.exists(r_script_path):
+        raise FileNotFoundError(f"The R script {r_script_path} does not exist. Please provide a valid path.")
     if not os.path.exists("./tmp"):
         os.makedirs("./tmp")
         print("Temporary directory created.")
@@ -365,10 +453,40 @@ def srtsim_fit(count_path,
                spatial_y = 'y',
                n_rep = 1,
                seed = 0,
-               r_script_path=os.path.join(os.path.dirname(__file__), "R/srtsim.R")):
+               r_script_path=None):
     """
-    Fit the splatter model to the data.
+    Fit the SRTsim model to the given reference data and metadata to simulate new omics data.
+    Args:
+        count_path (str): The path to the count matrix file.
+        meta_path (str): The path to the metadata file.
+        group_col (str): The column name in the metadata that contains the grouping information. Default is 'state'.
+        spatial_x (str): The column name in the metadata that contains the x-coordinate of the spatial location.
+        spatial_y (str): The column name in the metadata that contains the y-coordinate of the spatial location.
+        n_rep (int): The number of replicates to simulate. Default is 1. Since SRTsim can only simulate exact same number of cells as the reference, this parameter is used when the number of cells in the reference is less than the number of cells in the spatial simulation results.
+        seed (int): The random seed for reproducibility. Default is 0.
+        r_script_path (str): The path to the R script that performs the SRTsim fitting. Default is None, which uses the script of simspace package.
+    Returns:
+        tuple: A tuple containing two DataFrames:
+            - sim_data: The simulated gene expression data.
+            - sim_meta: The metadata of the simulated cells.
+    Raises:
+        FileNotFoundError: If the R script file does not exist.
+        Exception: If the R script fails to execute or returns an error.
+    Examples:
+        >>> sim_data, sim_meta = srtsim_fit("path/to/count.csv",
+        ...                              "path/to/meta.csv",
+        ...                              group_col='state',
+        ...                              spatial_x='x',
+        ...                              spatial_y='y',
+        ...                              n_rep=1,
+        ...                              seed=42)
+        >>> print(sim_data.head())
+        >>> print(sim_meta.head())
     """
+    if r_script_path is None:
+        r_script_path = os.path.join(os.path.dirname(__file__), "R/srtsim.R")
+    if not os.path.exists(r_script_path):
+        raise FileNotFoundError(f"The R script {r_script_path} does not exist. Please provide a valid path.")
     if not os.path.exists("./tmp"):
         os.makedirs("./tmp")
         print("Temporary directory created.")

@@ -27,3 +27,15 @@ examples/figures.ipynb
 # Ignore Jupyter Notebook checkpoints
 .ipynb_checkpoints/
 .ipynb_checkpoints/*
+
+# Sphinx build directory
+docs/_build/
+docs/build/
+
+# Jupyter notebook checkpoints
+**/.ipynb_checkpoints
+
+# Cache and metadata
+docs/.doctrees/
+docs/.pytest_cache/
+docs/.mypy_cache/

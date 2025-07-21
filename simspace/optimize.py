@@ -221,6 +221,7 @@ def spatial_fit(
         ):
     """
     Perform the Evolutionary Algorithm to optimize simulation parameters based on a target vector.
+    
     Args:
         target (list): Target vector to optimize against.
         population_size (int): Number of individuals in the population (default is 50).

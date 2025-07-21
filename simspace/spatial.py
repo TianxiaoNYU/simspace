@@ -95,30 +95,48 @@ def generate_offsets3D(distance, method, linear=False):
     return offsets
 
 ## Calculate Moran's I
-def calculate_morans_I(data, coordinates):
+def calculate_morans_I(
+        data: pd.DataFrame, 
+        coordinates: pd.DataFrame,
+        k = 5) -> float:
     """
     Calculate Moran's I for a given dataset and spatial weights.
 
-    Parameters:
-    - data: pandas DataFrame or Series containing the variable of interest.
-    - weights: pysal spatial weights object.
+    Args:
+        data: pandas DataFrame containing the variable of interest.
+        coordinates: numpy array or pandas DataFrame containing the spatial coordinates. Used for libpysal.cg.KDTree()
+        k: number of nearest neighbors to consider for spatial weights. Default is 5.
 
     Returns:
-    - morans_I: Moran's I value.
+        morans_I: Moran's I value.
     """
     kd = libpysal.cg.KDTree(coordinates)
-    weights = KNN(kd, k=5)
+    weights = KNN(kd, k=k)
 
     # Calculate Moran's I
     morans_I = Moran(data, weights)
 
     return morans_I.I
 
-def integrate_morans_I(data, coordinates, typelist):
-
+def integrate_morans_I(data: pd.DataFrame, 
+                       coordinates: pd.DataFrame, 
+                       typelist: list) -> list:
     """
     Calculate Moran's I for a given dataset and spatial weights.
+
+    Args:
+        data: pandas DataFrame containing the variable of interest.
+        coordinates: numpy array or pandas DataFrame containing the spatial coordinates. Used for libpysal.cg.KDTree()
+        typelist: list of types to calculate Moran's I for.
+    
+    Returns:
+        mi_list: List of Moran's I values for each type in typelist.
+    
+    Raises:
+        ValueError: If typelist is empty.
     """
+    if not isinstance(typelist, list) or len(typelist) == 0:
+        raise ValueError("typelist must be a non-empty list.")
     mi_list = []
     for type in typelist:
         tmp = data == type
@@ -128,17 +146,19 @@ def integrate_morans_I(data, coordinates, typelist):
     
 
 ## Calculate local Moran's I
-def calculate_local_morans_I(data, coordinates, k=20):
+def calculate_local_morans_I(data: pd.DataFrame, 
+                             coordinates: pd.DataFrame, 
+                             k: int = 20) -> np.ndarray:
     """
     Calculate local Moran's I for a given dataset and spatial weights.
 
-    Parameters:
-    - data: pandas DataFrame or Series containing the variable of interest.
-    - coordinates: numpy array or pandas DataFrame containing the spatial coordinates.
-    - k: number of nearest neighbors to consider for spatial weights.
+    Args:
+        data: pandas DataFrame or Series containing the variable of interest.
+        coordinates: numpy array or pandas DataFrame containing the spatial coordinates.
+        k: number of nearest neighbors to consider for spatial weights.
 
     Returns:
-    - local_morans_I: Local Moran's I values.
+        local_morans_I: Local Moran's I values.
     """
     kd = libpysal.cg.KDTree(coordinates)
     weights = libpysal.weights.KNN(kd, k=k)
@@ -149,22 +169,26 @@ def calculate_local_morans_I(data, coordinates, k=20):
     return local_morans_I.Is
 
 ## Plot local Moran's I
-def plot_local_morans_I(data, coordinates, local_morans_I, ax=None):
-    
+def plot_local_morans_I(
+        data: pd.DataFrame, 
+        coordinates: pd.DataFrame, 
+        local_morans_I: np.ndarray, 
+        ax=None):
+
     """
     Plot local Moran's I values on a scatter plot.
 
-    Parameters:
-    - data: pandas DataFrame or Series containing the variable of interest.
-    - coordinates: numpy array or pandas DataFrame containing the spatial coordinates.
-    - local_morans_I: Local Moran's I values.
-    - ax: matplotlib axis object to plot on.
+    Args:
+        data: pandas DataFrame or Series containing the variable of interest.
+        coordinates: numpy array or pandas DataFrame containing the spatial coordinates.
+        local_morans_I: Local Moran's I values.
+        ax: matplotlib axis object to plot on.
 
     Returns:
-    - ax: matplotlib axis object.
+        ax: matplotlib axis object.
     """
     if ax is None:
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+        _, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
     else:
         ax1, ax2 = ax
 
@@ -177,17 +201,20 @@ def plot_local_morans_I(data, coordinates, local_morans_I, ax=None):
     return ax1, ax2
 
 ## Calculate the local entropy
-def calculate_local_entropy(data, coordinates, k=20):
+def calculate_local_entropy(
+        data: pd.DataFrame,
+        coordinates: pd.DataFrame,
+        k: int = 20) -> np.ndarray:
     """
     Calculate the local entropy for a given dataset and spatial coordinates.
 
-    Parameters:
-    - data: pandas DataFrame or Series containing the variable of interest.
-    - coordinates: numpy array or pandas DataFrame containing the spatial coordinates.
-    - k: number of nearest neighbors to consider for spatial weights.
+    Args:
+        data: pandas DataFrame or Series containing the variable of interest.
+        coordinates: numpy array or pandas DataFrame containing the spatial coordinates.
+        k: number of nearest neighbors to consider for spatial weights.
 
     Returns:
-    - local_entropy: Local entropy values.
+        local_entropy: Local entropy values.
     """
     data.reset_index(drop=True, inplace=True)
     nbrs = NearestNeighbors(n_neighbors=k).fit(coordinates)
@@ -206,16 +233,18 @@ def calculate_local_entropy(data, coordinates, k=20):
     return local_entropy
 
 ## histogram of local entropy
-def plot_local_entropy(local_entropy, ax=None):
+def plot_local_entropy(
+        local_entropy: np.ndarray, 
+        ax=None) -> plt.Axes:
     """
     Plot a histogram of local entropy values.
 
-    Parameters:
-    - local_entropy: Local entropy values.
-    - ax: matplotlib axis object to plot on.
+    Args:
+        local_entropy: Local entropy values.
+        ax: matplotlib axis object to plot on.
 
     Returns:
-    - ax: matplotlib axis object.
+        ax: matplotlib axis object.
     """
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=(6, 6))
@@ -226,10 +255,20 @@ def plot_local_entropy(local_entropy, ax=None):
 
     return ax
 
-def spatial_stat(data, coordinates, typelist):
+def spatial_stat(
+    data: pd.DataFrame,
+    coordinates: pd.DataFrame,
+    typelist: list) -> np.ndarray:
     """
     Calculate moran's I and local entropy for a given dataset.
 
+    Args:
+        data: pandas DataFrame containing the variable of interest.
+        coordinates: numpy array or pandas DataFrame containing the spatial coordinates.
+        typelist: list of types to calculate Moran's I for. 
+
+    Returns:
+        res: numpy array containing moran's I and local entropy values.
     """
     morans_I = integrate_morans_I(data, coordinates, typelist)
     local_entropy = calculate_local_entropy(data, coordinates)

@@ -1,6 +1,11 @@
 import numpy as np
 
-def create_ellipse(array_shape, center, radius_x, radius_y, angle):
+def create_ellipse(
+        array_shape: tuple, 
+        center: tuple, 
+        radius_x: int, 
+        radius_y: int, 
+        angle: float) -> np.ndarray:
     """
     Create a 2D numpy array with a rotated ellipse shape.
 
@@ -12,10 +17,8 @@ def create_ellipse(array_shape, center, radius_x, radius_y, angle):
         angle (float): Angle of rotation in degrees.
 
     Returns:
-        numpy.ndarray: 2D numpy array with the rotated ellipse shape
+        numpy.ndarray: 2D numpy array with the rotated ellipse shape, where pixels inside the ellipse are set to 1 and others to 0.
 
-     array_shape (tuple): Shape of the 2D array as (height, width).
-    numpy.ndarray: 2D numpy array with the rotated ellipse shape, where pixels inside the ellipse are set to 1 and others to 0.
     Examples:
         >>> import numpy as np
         >>> arr = create_ellipse((10, 10), (5, 5), 3, 2, 45)
