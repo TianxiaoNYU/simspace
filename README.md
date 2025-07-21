@@ -50,15 +50,6 @@ BiocManager::install(c("splatter"))
 
 Once installed, SimSpace will automatically use these tools when relevant R-based simulations are requested.
 
-## 📘 Tutorials
-
-To get started with SimSpace, we provide detailed tutorials covering both reference-based and reference-free simulation modes.
-
-- **Step-by-step tutorials** can be found in [`tutorials.md`](./tutorials.md)
-- **Executable notebook examples** are located in the [`examples/`](./examples/) directory
-
-These resources walk through how to configure and run simulations as well as visualize outputs.
-
 ## 📖 Documentation
 
 Full documentation for SimSpace is available at:
@@ -70,7 +61,15 @@ The documentation includes:
 - Installation instructions (Python + optional R setup)
 - Tutorials (reference-free & reference-based simulation)
 - API reference for all modules and functions
-- Spatial benchmarking and analysis tools
+
+## 📘 Tutorials
+
+To get started with SimSpace, we provide detailed tutorials covering both reference-based and reference-free simulation modes.
+
+- **Step-by-step tutorials** can be found in [`tutorials.md`](./tutorials.md)
+- **Executable notebook examples** are located in the [`examples/`](./examples/) directory
+
+These resources walk through how to configure and run simulations as well as visualize outputs.
 
 ## 🚀 Quick Start
 
