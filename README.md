@@ -1,5 +1,8 @@
 # SimSpace
 
+[![Docs](https://readthedocs.org/projects/simspace/badge/?version=latest)](https://simspace.readthedocs.io/en/latest/)
+[![PyPI](https://img.shields.io/pypi/v/simspace.svg)](https://pypi.org/project/simspace/)
+
 **SimSpace** is a Python framework for simulating spatial omics data with realistic cellular distributions and tissue organization. Designed for benchmarking spatial analysis methods, SimSpace enables generation of synthetic datasets that preserve spatial autocorrelation, cell-cell interactions, and spatial proximities using a Markov Random Field (MRF) model.
 
 ![SimSpace Workflow](images/overview.png)
@@ -55,6 +58,19 @@ To get started with SimSpace, we provide detailed tutorials covering both refere
 - **Executable notebook examples** are located in the [`examples/`](./examples/) directory
 
 These resources walk through how to configure and run simulations as well as visualize outputs.
+
+## 📖 Documentation
+
+Full documentation for SimSpace is available at:
+
+➡️ [simspace.readthedocs.io](https://simspace.readthedocs.io/en/latest/)
+
+The documentation includes:
+
+- Installation instructions (Python + optional R setup)
+- Tutorials (reference-free & reference-based simulation)
+- API reference for all modules and functions
+- Spatial benchmarking and analysis tools
 
 ## 🚀 Quick Start
 
