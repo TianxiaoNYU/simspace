@@ -126,8 +126,8 @@ def generate_random_parameters(
     np.random.seed(seed)
     theta_list = []
     for _ in range(n_group):
-        theta = np.random.uniform(-theta, theta, size=(n_state-1)*n_state//2)
-        theta_list.append(theta)
+        theta_tmp = np.random.uniform(-theta, theta, size=(n_state-1)*n_state//2)
+        theta_list.append(theta_tmp)
     parameters = {
         'n_group': n_group,
         'n_state': n_state,
