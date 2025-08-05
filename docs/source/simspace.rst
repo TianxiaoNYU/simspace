@@ -12,6 +12,22 @@ simspace.core module
    :show-inheritance:
    :undoc-members:
 
+simspace.spatial module
+-----------------------
+
+.. automodule:: simspace.spatial
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+simspace.util module
+--------------------
+
+.. automodule:: simspace.util
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 simspace.niche module
 ---------------------
 
@@ -40,22 +56,6 @@ simspace.plot module
 --------------------
 
 .. automodule:: simspace.plot
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
-simspace.spatial module
------------------------
-
-.. automodule:: simspace.spatial
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
-simspace.util module
---------------------
-
-.. automodule:: simspace.util
    :members:
    :show-inheritance:
    :undoc-members:

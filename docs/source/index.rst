@@ -18,6 +18,7 @@ SimSpace documentation
    tutorials/reference_based_Xenium
    tutorials/reference_based_CODEX
    tutorials/spatial_fitting
+   tutorials/3D_simulation
 
 .. toctree::
    :maxdepth: 2
