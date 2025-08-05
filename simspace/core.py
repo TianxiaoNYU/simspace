@@ -93,6 +93,25 @@ class SimSpace:
         init_state = np.random.randint(self.num_states, size=self.shape[0]*self.shape[1])
         self.grid = init_state.reshape(self.shape)
 
+    def initialize3D(self):
+        """
+        Initialize the 3D grid with random states.
+
+        Raises:
+            ValueError: If the shape is not a 3-D tuple.
+
+        Notes:
+            The grid is initialized with random integers representing states.
+            The shape of the grid is defined by the `shape` attribute.
+            The random seed is set to ensure reproducibility.
+        """
+        if len(self.shape) != 3:
+            raise ValueError("The shape must be a 3-D tuple.")
+
+        np.random.seed(self.seed)
+        init_state = np.random.randint(self.num_states, size=self.shape[0]*self.shape[1]*self.shape[2])
+        self.grid = init_state.reshape(self.shape)
+
     def _wide_to_long(self):
         """
         Convert wide format to long format.
@@ -665,7 +684,7 @@ class SimSpace:
             >>> sim.create_niche3D(num_niches=3, n_iter=6, theta_niche=theta_niche)
         """
         if neighborhood is None:
-            neighborhood = spatial.generate_offsets(5, 'manhattan')
+            neighborhood = spatial.generate_offsets3D(5, 'manhattan')
 
         if len(self.shape) != 3:
             raise ValueError("The grid must be a 3-D numpy array. Try create_niche() for 2-D grids.")
@@ -686,7 +705,7 @@ class SimSpace:
                     for k in np.random.permutation(self.shape[2]):
                         if self.grid[i, j, k] < 0: continue ## Skip the empty cells
                         neighbors = self.get_custom_neighbors3D(i, j, k,
-                                                              neighborhood=neighborhood) 
+                                                                neighborhood=neighborhood) 
                         if len(neighbors) == 0: continue ## Skip if there are no neighbors
 
                         probabilities = self._conditional_probability3D(self.niche, theta_niche, neighbors) ## Compute the probabilities
