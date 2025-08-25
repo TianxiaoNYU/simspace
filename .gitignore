@@ -21,7 +21,6 @@ __pycache__/
 *.~ 
 
 # Ignore tmp test files
-examples/figures.ipynb
 .pytest_cache/
 
 # Ignore Jupyter Notebook checkpoints
