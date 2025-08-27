@@ -71,6 +71,8 @@ To get started with SimSpace, we provide detailed tutorials covering both refere
 
 These resources walk through how to configure and run simulations as well as visualize outputs.
 
+To reproduce the figures in the manuscript, one can find the scripts at [`examples/figures.ipynb`](./examples/figures.ipynb).
+
 ## 🚀 Quick Start
 
 Here’s a basic example to simulate a 2D tissue with 3 spatial niches and 8 cell types:
