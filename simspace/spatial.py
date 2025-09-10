@@ -120,7 +120,7 @@ def calculate_morans_I(
 
 def integrate_morans_I(data: pd.DataFrame, 
                        coordinates: pd.DataFrame, 
-                       typelist: list) -> list:
+                       typelist) -> list:
     """
     Calculate Moran's I for a given dataset and spatial weights.
 
@@ -135,8 +135,8 @@ def integrate_morans_I(data: pd.DataFrame,
     Raises:
         ValueError: If typelist is empty.
     """
-    if not len(typelist) == 0:
-        raise ValueError("typelist must be a non-empty list.")
+    if len(typelist) == 0:
+        raise ValueError("typelist must be a non-empty list or non-empty array.")
     mi_list = []
     for type in typelist:
         tmp = data == type
