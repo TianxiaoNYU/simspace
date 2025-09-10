@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="simspace",
-    version="0.2.4",
+    version="0.2.5",
     description="SimSpace: a comprehensive in-silico spatial omics data simulation framework",
     long_description=long_description,
     long_description_content_type="text/markdown",
