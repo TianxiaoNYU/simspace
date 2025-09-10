@@ -135,7 +135,7 @@ def integrate_morans_I(data: pd.DataFrame,
     Raises:
         ValueError: If typelist is empty.
     """
-    if not isinstance(typelist, list) or len(typelist) == 0:
+    if not len(typelist) == 0:
         raise ValueError("typelist must be a non-empty list.")
     mi_list = []
     for type in typelist:

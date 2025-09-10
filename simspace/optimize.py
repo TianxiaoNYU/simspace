@@ -246,7 +246,9 @@ def spatial_fit(
         ValueError: If the target vector is not a list or if the population size is not a positive integer.
     """
     if not isinstance(target, list):
-        raise ValueError("Target should be a list containing local entropy and Moran's I values.")
+        if not isinstance(target, np.ndarray):
+            raise ValueError("Target should be a list or numpy array containing local entropy and Moran's I values.")
+        target = target.tolist()
     if not isinstance(population_size, int) or population_size <= 0:
         raise ValueError("Population size should be a positive integer.")
 
