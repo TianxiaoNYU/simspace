@@ -1,6 +1,8 @@
 # Ignore R environment files
 renv/library/
 renv/staging/
+*.Rhistory
+*.RData
 
 # Ignore Python build artifacts
 *.egg-info/

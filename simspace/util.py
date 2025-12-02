@@ -329,6 +329,7 @@ def convolve(
         group_col = 'state_rank'
 
     cell_meta.index = [f'cell_{i+1}' for i in range(len(cell_meta))]
+    omics.index = cell_meta.index
 
     spot_meta = []
     spot_omics = []

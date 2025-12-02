@@ -122,6 +122,10 @@ class SimSpace:
         self.grid_long['col'] = np.tile(range(self.shape[1]), self.shape[0])
         self.grid_long['state'] = self.grid_long['state'].astype('int')
 
+        tmp_niche = self.niche.reshape(-1, 1)
+        tmp_niche = pd.DataFrame(tmp_niche, columns=['niche'])
+        self.grid_long = pd.concat([self.grid_long, tmp_niche], axis=1)
+
         self.meta = self.grid_long.copy()
         self.meta = self.meta[self.meta['state'] >= 0]
         cell_counts = self.meta['state'].value_counts()
@@ -226,6 +230,7 @@ class SimSpace:
                 tmp_grid[tmp_grid < 0] = np.nan
         plt.figure(figsize=figsize, dpi=dpi)
         sns.heatmap(tmp_grid, cmap=cmap)
+        plt.gca().invert_yaxis()
         plt.gca().set_aspect('equal')
         plt.show()
 
@@ -598,9 +603,9 @@ class SimSpace:
         if overlap:
             self.niche = self.niche * (1 - ellipse_mask) + ellipse_mask * niche_idx
         else:
-            self.niche += ellipse_mask * niche_idx
+            self.niche += np.array(ellipse_mask * niche_idx).astype('int')
 
-    def _add_rectangle(self, center, length, width):
+    def _add_rectangle(self, niche_idx, center, length, width, overlap=False):
         """
         Add a rectangle to the grid.
 
@@ -610,7 +615,10 @@ class SimSpace:
             width (int): The width of the vessel.
         """
         rectangle_mask = niche.create_rectangle(self.shape, center, length, width)
-        self.niche += rectangle_mask * max(self.niche.flatten() + 1)
+        if overlap:
+            self.niche = self.niche * (1 - rectangle_mask) + rectangle_mask * niche_idx
+        else:
+            self.niche += np.array(rectangle_mask * niche_idx).astype('int')
 
     def manual_niche(self, 
                      pattern: dict = {}) -> None:
@@ -642,6 +650,17 @@ class SimSpace:
             else:
                 raise ValueError("Invalid pattern. Should be either 'ellipse' or 'rectangle'.")
 
+        # normalize niche labels to consecutive integers starting at 1 (keep 0 as background)
+        labels = np.unique(self.niche).astype(int)
+        pos_labels = labels[labels > 0]
+        if pos_labels.size > 0:
+            desired = np.arange(1, pos_labels.size + 1)
+            if not np.array_equal(pos_labels, desired):
+                mapping = {old: new for new, old in enumerate(pos_labels, start=1)}
+                new_niche = np.zeros_like(self.niche, dtype=int)
+                for old, new in mapping.items():
+                    new_niche[self.niche == old] = new
+                self.niche = new_niche
         if len(self.theta) < max(self.niche.flatten()):
             raise ValueError("The number of niches exceeds the number of theta matrices provided. Prohaps there are intercections between niches.")
         self.niche = self.niche.astype('int')
