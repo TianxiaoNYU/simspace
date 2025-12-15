@@ -67,11 +67,11 @@ The documentation includes:
 To get started with SimSpace, we provide detailed tutorials covering both reference-based and reference-free simulation modes.
 
 - **Step-by-step tutorials** can be found in [`tutorials.md`](./tutorials.md)
-- **Executable notebook examples** are located in the [`examples/`](./examples/) directory
+- **Executable notebooks** are located in the [`tutorials/`](./tutorials/) directory
 
 These resources walk through how to configure and run simulations as well as visualize outputs.
 
-To reproduce the figures in the manuscript, one can find the scripts at [`examples/figures.ipynb`](./examples/figures.ipynb).
+To reproduce the figures in the manuscript, one can find the scripts at [`fig_reproduce/figures.ipynb`](./fig_reproduce/figures.ipynb).
 
 ## 🚀 Quick Start
 

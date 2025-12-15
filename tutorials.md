@@ -36,7 +36,7 @@ In this mode, spatial structure and cell types are generated from scratch based 
 
 ### 📌 Example
 
-👉 See [examples/reference_free.ipynb](examples/reference_free.ipynb) for code.
+👉 See [tutorials/reference_free.ipynb](tutorials/reference_free.ipynb) for code.
 
 ## Reference-Based Simulation
 
@@ -56,7 +56,7 @@ In this setting, you provide a real spatial omics dataset as the reference. SimS
 
 ### 📌 Example
 
-👉 See [examples/reference_based_Xenium.ipynb](examples/reference_based_Xenium.ipynb), [examples/reference_based_CODEX.ipynb](examples/reference_based_CODEX.ipynb), and [examples/spatial_fitting.ipynb](examples/spatial_fitting.ipynb) for code.
+👉 See [tutorials/reference_based_Xenium.ipynb](tutorials/reference_based_Xenium.ipynb), [tutorials/reference_based_CODEX.ipynb](tutorials/reference_based_CODEX.ipynb), and [tutorials/spatial_fitting.ipynb](tutorials/spatial_fitting.ipynb) for code.
 
 
 ## 🙋 Need Help?
