@@ -108,6 +108,6 @@ Developed by Tianxiao Zhao at NYU Grossman School of Medicine. Should you have a
 
 ## 🔗 References
 If you use SimSpace in your work, please cite the work on BioRxiv:
-[Zhao T, Zhang K, Hollenberg M, Zhou W, Fenyo D. SimSpace: a comprehensive in-silico spatial omics data simulation framework. bioRxiv. 2025:2025.07.18.665587.](https://www.biorxiv.org/content/10.1101/2025.07.18.665587v1)
+[Zhao T, Zhang K, Hollenberg M, Zhou W, Fenyo D. SimSpace: a comprehensive in-silico spatial omics data simulation framework. bioRxiv. 2025:2025.07.18.665587.](https://www.biorxiv.org/content/10.1101/2025.07.18.665587)
 
 
