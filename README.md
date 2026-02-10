@@ -3,9 +3,11 @@
 [![Docs](https://readthedocs.org/projects/simspace/badge/?version=latest)](https://simspace.readthedocs.io/en/latest/)
 [![PyPI](https://img.shields.io/pypi/v/simspace.svg)](https://pypi.org/project/simspace/)
 
-**SimSpace** is a Python framework for simulating spatial omics data with realistic cellular distributions and tissue organization. Designed for benchmarking spatial analysis methods, SimSpace enables generation of synthetic datasets that preserve spatial autocorrelation, cell-cell interactions, and spatial proximities using a Markov Random Field (MRF) model.
+**SimSpace** is a Python framework for simulating spatial omics data with realistic cellular distributions and tissue organization. Designed for benchmarking spatial analysis methods, SimSpace enables generation of synthetic datasets that preserve spatial autocorrelation, cell-cell interactions, and spatial proximities using a Markov Random Field (MRF) model. 
 
 ![SimSpace Workflow](images/overview.png)
+
+For full figure reproduction (all analyses and scripts) for the SimSpace manuscript, see: https://github.com/TianxiaoNYU/simspace-reproducibility
 
 ## 📦 Installation
 
@@ -71,8 +73,6 @@ To get started with SimSpace, we provide detailed tutorials covering both refere
 
 These resources walk through how to configure and run simulations as well as visualize outputs.
 
-To reproduce the figures in the manuscript, one can find the scripts at [`fig_reproduce/figures.ipynb`](./fig_reproduce/figures.ipynb).
-
 ## 🚀 Quick Start
 
 Here’s a basic example to simulate a 2D tissue with 3 spatial niches and 8 cell types:
@@ -109,5 +109,3 @@ Developed by Tianxiao Zhao at NYU Grossman School of Medicine. Should you have a
 ## 🔗 References
 If you use SimSpace in your work, please cite the work on BioRxiv:
 [Zhao T, Zhang K, Hollenberg M, Zhou W, Fenyo D. SimSpace: a comprehensive in-silico spatial omics data simulation framework. bioRxiv. 2025:2025.07.18.665587.](https://www.biorxiv.org/content/10.1101/2025.07.18.665587)
-
-
