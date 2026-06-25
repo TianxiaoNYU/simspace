@@ -13,7 +13,7 @@ warnings.filterwarnings('ignore')
 ## Define the Fitness Function, which do the simulation first and then calculate the fitness value
 #### The fitness value is the distance between the simulation result and the experimental data
 def _get_spatial_statistics(simulation, n_state):
-    simulation.columns = ['celltype', 'x', 'y', 'celltype_ranked']
+    simulation.columns = ['celltype', 'x', 'y', 'niche', 'celltype_ranked']
     tmp = simulation[simulation['celltype'] == -1].index
     simulation = simulation.drop(tmp)
     simulation = simulation.reset_index(drop=True)
