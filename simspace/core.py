@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import colorcet as cc
 import typing
 import pickle
+import copy
 
 from . import spatial, omics, niche
 
@@ -867,7 +868,13 @@ class SimSpace:
             spatial=True,
             k_neighors: int = 20,
             spatial_effect: float = 3,
-            se_threshold: float = 1.5,) -> None:
+            se_threshold: float = 1.5,
+            *,
+            direct_spatial_effects: typing.Optional[dict] = None,
+            technical_noise: typing.Optional[dict] = None,
+            dropout: typing.Optional[dict] = None,
+            store_intermediate: bool = False,
+            ) -> None:
         """
         Create the reference-free omics data using Gamma-Poisson distribution.
 
@@ -881,6 +888,16 @@ class SimSpace:
             k_neighors (int): The number of neighbors to consider for spatial omics.
             spatial_effect (float): The spatial effect parameter for spatial omics. Defaults to 3.
             se_threshold (float): The threshold for spatial effect. Defaults to 1.5.
+            direct_spatial_effects (dict, optional): Opt-in configuration for direct
+                coordinate-conditioned effects on selected genes' log Poisson means.
+                The legacy phenotype-conditioned model is used when this is None.
+            technical_noise (dict, optional): Opt-in observation configuration.
+                Supported keys are ``capture_efficiency``, ``ambient_rate``,
+                ``ambient_profile``, and ``seed``.
+            dropout (dict, optional): Opt-in excess-dropout configuration. The
+                supported modes are ``constant`` and ``mean_dependent``.
+            store_intermediate (bool): Store latent means, intermediate counts,
+                dropout truth, and resolved configurations. Defaults to False.
         Raises:
             ValueError: If the bg_ratio is not between 0 and 1, or if the n_genes is not a positive integer.
         Notes:
@@ -904,22 +921,137 @@ class SimSpace:
         if not isinstance(n_genes, int) or n_genes <= 0:
             raise ValueError("n_genes must be a positive integer.")
     
-        omics_res = omics.simOmics(
-            omics_meta=self.gene_meta, 
-            meta=self.meta, 
-            seed=self.seed,
+        if technical_noise is not None and not isinstance(technical_noise, dict):
+            raise TypeError("technical_noise must be a dictionary or None.")
+        if dropout is not None and not isinstance(dropout, dict):
+            raise TypeError("dropout must be a dictionary or None.")
+        if not isinstance(store_intermediate, bool):
+            raise TypeError("store_intermediate must be a boolean.")
+
+        intermediate_attributes = (
+            'omics_latent_mean',
+            'omics_baseline_counts',
+            'omics_capture_counts',
+            'omics_post_lr_counts',
+            'omics_ambient_counts',
+            'omics_dropout_mask',
+            'omics_dropout_probability',
+            'omics_observed_counts',
+            'omics_spatial_design',
+            'spatial_gene_truth',
+            'omics_observation_truth',
+            'omics_extension_config',
+        )
+        for attribute in intermediate_attributes:
+            if hasattr(self, attribute):
+                delattr(self, attribute)
+
+        # Preserve the original execution path exactly when all new components
+        # are disabled.  ``store_intermediate`` only records deterministic
+        # copies and does not change the generated output or random-number use.
+        if direct_spatial_effects is None and technical_noise is None and dropout is None:
+            omics_res = omics.simOmics(
+                omics_meta=self.gene_meta,
+                meta=self.meta,
+                seed=self.seed,
+                )
+            if spatial:
+                self.omics = omics.simSpatialOmics(
+                    gene_data=omics_res,
+                    gene_meta=self.gene_meta,
+                    cell_meta=self.meta,
+                    k_neighors=k_neighors,
+                    spatial_effect=spatial_effect,
+                    se_threshold=se_threshold,
+                    seed=1)
+            else:
+                self.omics = omics_res
+            if store_intermediate:
+                self.omics_latent_mean = omics.buildOmicsMean(self.gene_meta, self.meta)
+                self.omics_baseline_counts = omics_res.copy()
+                self.omics_post_lr_counts = self.omics.copy()
+                self.omics_observed_counts = self.omics.copy()
+            return
+
+        if direct_spatial_effects is None:
+            latent_mean = omics.buildOmicsMean(self.gene_meta, self.meta)
+            omics_res = omics.simOmics(
+                omics_meta=self.gene_meta,
+                meta=self.meta,
+                seed=self.seed,
+                )
+            spatial_gene_truth = None
+            spatial_design = None
+        else:
+            omics_res, latent_mean, spatial_gene_truth, spatial_design = omics.simOmicsWithSpatialEffects(
+                omics_meta=self.gene_meta,
+                meta=self.meta,
+                direct_spatial_effects=direct_spatial_effects,
+                seed=self.seed,
             )
+
+        resolved_technical_noise = technical_noise or {}
+        observation_seed = int(resolved_technical_noise.get('seed', self.seed + 10000))
+        capture_counts, capture_efficiency = omics.applyCaptureNoise(
+            omics_res,
+            capture_efficiency=resolved_technical_noise.get('capture_efficiency', 1.0),
+            seed=observation_seed,
+        )
+
         if spatial:
-            self.omics = omics.simSpatialOmics(
-                gene_data=omics_res, 
-                gene_meta=self.gene_meta, 
-                cell_meta=self.meta, 
-                k_neighors=k_neighors, 
+            post_lr_counts = omics.simSpatialOmics(
+                gene_data=capture_counts,
+                gene_meta=self.gene_meta,
+                cell_meta=self.meta,
+                k_neighors=k_neighors,
                 spatial_effect=spatial_effect,
                 se_threshold=se_threshold,
-                seed=1)
+                seed=1,
+            )
         else:
-            self.omics = omics_res
+            post_lr_counts = capture_counts
+
+        ambient_counts_output, ambient_additions, ambient_rate, ambient_profile = omics.applyAmbientNoise(
+            post_lr_counts,
+            ambient_rate=resolved_technical_noise.get('ambient_rate', 0.0),
+            ambient_profile=resolved_technical_noise.get('ambient_profile'),
+            seed=observation_seed + 1,
+        )
+        dropout_seed = int((dropout or {}).get('seed', self.seed + 20000))
+        observed_counts, dropout_mask, dropout_probability = omics.applyDropout(
+            ambient_counts_output,
+            dropout=dropout,
+            latent_mean=latent_mean,
+            seed=dropout_seed,
+        )
+        self.omics = observed_counts
+
+        if spatial_gene_truth is not None:
+            self.spatial_gene_truth = spatial_gene_truth
+        self.omics_extension_config = {
+            'direct_spatial_effects': copy.deepcopy(direct_spatial_effects),
+            'technical_noise': copy.deepcopy(technical_noise),
+            'dropout': copy.deepcopy(dropout),
+        }
+        self.omics_observation_truth = {
+            'capture_efficiency': capture_efficiency,
+            'ambient_rate': ambient_rate,
+            'ambient_profile': ambient_profile,
+            'observation_seed': observation_seed,
+            'dropout_seed': dropout_seed,
+        }
+
+        if store_intermediate:
+            self.omics_latent_mean = latent_mean
+            self.omics_baseline_counts = omics_res.copy()
+            self.omics_capture_counts = capture_counts.copy()
+            self.omics_post_lr_counts = post_lr_counts.copy()
+            self.omics_ambient_counts = ambient_additions
+            self.omics_dropout_mask = dropout_mask
+            self.omics_dropout_probability = dropout_probability
+            self.omics_observed_counts = observed_counts.copy()
+            if spatial_design is not None:
+                self.omics_spatial_design = spatial_design
     
     def fit_scdesign(
             self,

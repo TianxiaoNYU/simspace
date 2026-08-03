@@ -102,6 +102,46 @@ sim.meta.head()
 # sim.meta.to_csv('simspace.csv')
 ```
 
+### Optional direct spatial expression and observation effects
+
+The built-in reference-free Gamma--Poisson generator keeps its original
+phenotype-conditioned behavior by default. Direct coordinate-conditioned
+expression, capture loss, background contamination, and excess dropout are
+available only when explicitly configured:
+
+```python
+sim.create_omics(
+    n_genes=1000,
+    direct_spatial_effects={
+        "genes": ["Gene_0", "Gene_1"],
+        "basis": "linear",
+        "coefficients": {
+            "Gene_0": [1.0, 0.0],
+            "Gene_1": [0.0, -1.0],
+        },
+        "coordinate_scaling": "unit_range",
+    },
+    technical_noise={
+        "capture_efficiency": 0.8,
+        "ambient_rate": 2.0,
+        "seed": 101,
+    },
+    dropout={
+        "mode": "mean_dependent",
+        "intercept": 0.5,
+        "slope": -1.0,
+        "seed": 102,
+    },
+    store_intermediate=True,
+)
+```
+
+The supported spatial bases are `linear`, `radial`, `hotspot`, and
+`structure_distance`. With all new arguments omitted, `create_omics()` uses
+the unchanged legacy execution path. When `store_intermediate=True`, SimSpace
+retains the latent mean, baseline and observed counts, spatial-gene truth, and
+dropout realization for benchmarking.
+
 ## 🙋‍♀️ About
 
 Developed by Tianxiao Zhao at NYU Grossman School of Medicine. Should you have any questions, please contact Tianxiao Zhao at Tianxiao.Zhao@nyulangone.org
