@@ -389,8 +389,17 @@ def applyDropout(
 
     rng = np.random.default_rng(seed)
     mask = rng.random(gene_data.shape) < probabilities
-    observed = gene_data.copy()
-    observed.values[mask] = 0
+    # Construct the result from an explicitly writable NumPy copy.  With
+    # pandas copy-on-write enabled, ``DataFrame.values`` can be read-only even
+    # after ``DataFrame.copy()``, so in-place assignment through that view is
+    # not portable across supported pandas versions.
+    observed_values = gene_data.to_numpy(copy=True)
+    observed_values[mask] = 0
+    observed = pd.DataFrame(
+        observed_values,
+        index=gene_data.index,
+        columns=gene_data.columns,
+    )
     mask_frame = pd.DataFrame(mask, index=gene_data.index, columns=gene_data.columns)
     return observed, mask_frame, probability_frame
 

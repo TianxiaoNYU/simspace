@@ -130,6 +130,22 @@ def test_mean_dependent_dropout_is_lower_for_high_expression():
     assert probabilities.loc[1, 'Gene_0'] > probabilities.loc[1, 'Gene_1']
 
 
+def test_dropout_supports_pandas_copy_on_write():
+    counts = pd.DataFrame(
+        [[1.0, 2.0], [3.0, 4.0]],
+        columns=['Gene_0', 'Gene_1'],
+    )
+    observed, mask, _ = omics.applyDropout(
+        counts,
+        dropout={'mode': 'constant', 'probability': 1.0},
+        seed=14,
+    )
+
+    assert mask.to_numpy().all()
+    assert observed.to_numpy().sum() == 0
+    assert counts.to_numpy().sum() == 10
+
+
 def test_capture_and_dropout_change_counts_in_declared_direction():
     counts = pd.DataFrame(
         np.full((30, 4), 10, dtype=int),
