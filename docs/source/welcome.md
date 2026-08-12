@@ -1,66 +1,52 @@
-# 👋 Welcome to SimSpace Documentation
+# Welcome to SimSpace
 
-**SimSpace** is a flexible and extensible simulation framework for generating spatial omics data with customizable spatial structures, cell types, and gene expression profiles. It supports both reference-free and reference-based simulation modes, allowing users to create diverse tissue architectures ranging from well-defined niches to spatially intermixed environments across resolutions. Moreover, SimSpace also supports three-dimensional simulations, capturing the full complexity of tissue structure.
+SimSpace generates spatial omics data with controllable tissue niches,
+cell-type organization, and molecular profiles. Version 0.4.0 supports both a
+Python API and a headless command-line interface.
 
-This documentation covers:
+## Install
 
-- ✅ Installation instructions (Python & R environments)
-- 🧪 Tutorials for reference-free and reference-based simulation
-- 🛠 API Reference for all SimSpace modules and functions
-
----
-
-## 📦 Installation
-
-To install the latest version of SimSpace, we recommend using conda to setup the environment:
-
-```bash
-git clone https://github.com/TianxiaoNYU/simspace.git
-```
-
-- Create a conda environment for simspace
-```bash
-cd simspace
-conda env create -f environment.yml
-conda activate simspace
-```
-
-- Install simspace from PyPi
 ```bash
 pip install simspace
 ```
 
-### 🧬 Optional: Setting Up the R Environment for Omics Simulation
+## Run without a notebook
 
-SimSpace supports external omics profile simulation via R-based tools, including **scDesign3**, **SRTsim**, and **splatter**. These tools are optional but recommended if you want to simulate gene expression profiles in addition to spatial patterns.
-
-To enable this functionality, please install the required R packages manually in your system R environment:
-
-Steps:
-- Ensure that R (version 4.4 or compatible) is installed on your system. You can download it from CRAN.
-- Open an R session and install the required packages:
-
-```R
-if (!require("devtools", quietly = TRUE))
-    install.packages("devtools")
-devtools::install_github("SONGDONGYUAN1994/scDesign3")
-devtools::install_github("xzhoulab/SRTsim")
-```
-```R
-if (!require("devtools", quietly = TRUE))
-    install.packages("BiocManager")
-BiocManager::install(c("splatter"))
+```bash
+simspace reference-free \
+  --output-dir results/reference_free \
+  --shape 100 100 \
+  --n-niches 3 \
+  --n-cell-types 8 \
+  --n-genes 100 \
+  --seed 42
 ```
 
-Once installed, SimSpace will automatically use these tools when relevant R-based simulations are requested.
+```bash
+simspace reference-based \
+  --reference-metadata data/reference_metadata.csv \
+  --cell-type-column Cluster \
+  --x-column x_centroid \
+  --y-column y_centroid \
+  --params data/fitted_params.json \
+  --profile-model native \
+  --output-dir results/reference_based \
+  --seed 42
+```
 
----
+Both commands write `metadata.csv`, `molecular_profiles.csv.gz`,
+`spatial_scatter.png`, and `parameters.json`. They are noninteractive and can
+be launched with `nohup`, a shell script, or a cluster scheduler. Run
+`simspace reference-free --help` or `simspace reference-based --help` for the
+complete parameter list.
 
-## 🔗 Useful Links
+The tutorials in the documentation sidebar explain the corresponding Python
+steps. They are optional and are not required for command-line execution.
+Optional scDesign3, SRTsim, and Splatter adapters use packages installed in the
+normal local R environment; no separate R virtual environment is required.
 
-- 📦 [GitHub Repository](https://github.com/TianxiaoNYU/SimSpace)
-- 🐍 [PyPI Package](https://pypi.org/project/simspace/)
+## Links
 
----
-
-Feel free to explore the sidebar for detailed module-level documentation and usage examples. If you encounter any issues or have suggestions, you're welcome to open an issue on GitHub.
+- [GitHub repository](https://github.com/TianxiaoNYU/simspace)
+- [PyPI package](https://pypi.org/project/simspace/)
+- [Full CLI and output guide](https://github.com/TianxiaoNYU/simspace#command-line-quick-start)
