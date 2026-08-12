@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="simspace",
-    version="0.3.4",
+    version="0.4.0",
     description="SimSpace: a comprehensive in-silico spatial omics data simulation framework",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -33,6 +33,9 @@ setup(
     ],
     extras_require={
         "dev": ["pytest"]
+    },
+    entry_points={
+        "console_scripts": ["simspace=simspace.cli:main"],
     },
     python_requires=">=3.10",
     classifiers=[
