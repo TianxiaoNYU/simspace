@@ -12,19 +12,30 @@ for reference-free and reference-based simulations.
 
 ## Installation
 
-Install the released package:
-
-```bash
-pip install simspace
-```
-
-Or install the current source:
+We recommend using the supplied `environment.yml` to create a Conda environment
+for SimSpace:
 
 ```bash
 git clone https://github.com/TianxiaoNYU/simspace.git
 cd simspace
-pip install .
+conda env create -f environment.yml
+conda activate simspace
 ```
+
+Install the released SimSpace package in this environment:
+
+```bash
+python -m pip install simspace
+```
+
+### Optional R dependencies
+
+The native molecular-profile generator does not require R. To run the optional
+scDesign3, SRTsim, or Splatter adapters in either SimSpace or the manuscript
+reproducibility workflows, install the corresponding R packages once in your
+normal local R environment. Do not create a separate R virtual environment.
+See [Optional R molecular-profile adapters](#optional-r-molecular-profile-adapters)
+for the local installation commands.
 
 ## Command-line quick start
 
