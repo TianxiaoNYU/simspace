@@ -5,7 +5,7 @@
 
 **SimSpace** is a Python framework for generating spatial omics data with
 controllable tissue niches, cell-type organization, and molecular profiles.
-Version 0.4.0 provides both a Python API and a headless command-line interface
+Version 0.4.1 provides both a Python API and a headless command-line interface
 for reference-free and reference-based simulations.
 
 ![SimSpace workflow](images/overview.png)
@@ -99,7 +99,11 @@ between `--params` and `--fit-spatial`.
 By default, `--profile-model native` generates Gamma--Poisson profiles after
 the reference-based spatial layout is created. To fit molecular profiles from
 a reference matrix, supply `--reference-counts` and select `scdesign3` or
-`srtsim`; these two adapters require their corresponding R packages.
+`srtsim`; these two adapters require their corresponding R packages. The
+scDesign3 adapter automatically uses negative-binomial marginals for
+integer-valued counts and log-Gaussian marginals for nonnegative continuous
+intensities. Use `--scdesign-family nb` or `--scdesign-family gaussian` to
+override that detection when the measurement type is known.
 
 ## Output files
 

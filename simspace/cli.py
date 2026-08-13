@@ -360,6 +360,15 @@ def build_parser() -> argparse.ArgumentParser:
         default="native",
         help="Molecular-profile generator; scdesign3 and srtsim use packages installed in the local R environment.",
     )
+    profile_options.add_argument(
+        "--scdesign-family",
+        choices=("auto", "nb", "gaussian"),
+        default="auto",
+        help=(
+            "Marginal family for scDesign3 profiles. Auto uses negative binomial for "
+            "integer-valued data and log-Gaussian for continuous nonnegative data."
+        ),
+    )
     reference_based.set_defaults(handler=_run_reference_based)
     return parser
 
@@ -486,15 +495,25 @@ def _create_reference_profiles(simulation, metadata: pd.DataFrame, args: argpars
     if not args.reference_counts.exists():
         raise FileNotFoundError(f"Reference counts not found: {args.reference_counts}")
 
-    method = simulation.fit_scdesign if args.profile_model == "scdesign3" else simulation.fit_srtsim
-    method(
-        str(args.reference_counts),
-        str(args.reference_metadata),
-        args.cell_type_column,
-        args.x_column,
-        args.y_column,
-        seed=args.seed,
-    )
+    if args.profile_model == "scdesign3":
+        simulation.fit_scdesign(
+            str(args.reference_counts),
+            str(args.reference_metadata),
+            args.cell_type_column,
+            args.x_column,
+            args.y_column,
+            seed=args.seed,
+            family=args.scdesign_family,
+        )
+    else:
+        simulation.fit_srtsim(
+            str(args.reference_counts),
+            str(args.reference_metadata),
+            args.cell_type_column,
+            args.x_column,
+            args.y_column,
+            seed=args.seed,
+        )
 
 
 def _metadata_output(simulation) -> pd.DataFrame:

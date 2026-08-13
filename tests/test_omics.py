@@ -328,6 +328,44 @@ def test_omics():
     assert sim1 is not None, "Simulation space should not be None"
     assert sim1.omics['ABCC11'] is not None, "Omics data should not be None"
     assert len(sim1.omics) > 0, "Omics data should not be empty"
+    assert np.isfinite(sim1.omics.to_numpy()).all(), "Count output should be finite"
+    assert np.allclose(sim1.omics.to_numpy(), np.rint(sim1.omics.to_numpy())), \
+        "Integer reference counts should retain the negative-binomial pathway"
     assert 'fitted_celltype' in sim1.meta.columns, "Meta data should contain 'fitted_celltype' column"
     assert round(sim1.meta['row'][0], 2) == 0.35, "First row value should match expected value"
     assert round(sim1.meta['row'][1], 2) == 0.08, "Second row value should match expected value"
+
+
+def test_scdesign_continuous_profiles_use_gaussian_pathway(capsys):
+    """Continuous CODEX intensities remain nonnegative and continuous."""
+    data_dir = os.path.join(os.path.dirname(__file__), '../data')
+    count_path = os.path.join(data_dir, 'CODEX_count.csv')
+    meta_path = os.path.join(data_dir, 'CODEX_metadata.csv')
+    reference_meta = pd.read_csv(meta_path, index_col=0)
+    new_meta = pd.DataFrame({
+        'row': reference_meta['X_centroid'].to_numpy(),
+        'col': reference_meta['Y_centroid'].to_numpy(),
+        'fitted_celltype': reference_meta['phenotype'].to_numpy(),
+        'state': pd.factorize(reference_meta['phenotype'], sort=True)[0],
+    })
+
+    simulated, simulated_meta = omics.scdesign_fit(
+        count_path,
+        meta_path,
+        'phenotype',
+        'X_centroid',
+        'Y_centroid',
+        new_meta,
+        seed=0,
+        family='auto',
+    )
+
+    assert simulated is not None
+    assert simulated_meta is not None
+    assert simulated.shape == (31, 206)
+    values = simulated.to_numpy(dtype=float)
+    assert np.isfinite(values).all()
+    assert (values >= 0).all()
+    assert (np.abs(values - np.rint(values)) > 1e-8).any(), \
+        "Continuous reference intensities should not be rounded to counts"
+    assert "family 'gaussian'" in capsys.readouterr().out

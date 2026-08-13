@@ -777,11 +777,14 @@ def scdesign_fit(count_path,
                  spatial_y,
                  new_meta,
                  seed = 0,
-                 r_script_path=None):
+                 r_script_path=None,
+                 family="auto"):
     """
     Fit the scdesign model to the given reference data and metadata to simulate new omics data.
     Args:
-        count_path (str): The path to the count matrix file.
+        count_path (str): Path to a nonnegative reference feature matrix. Integer-valued
+            data use negative-binomial marginals and continuous data use log-Gaussian
+            marginals when ``family='auto'``.
         meta_path (str): The path to the metadata file.
         group_col (str): The column name in the metadata that contains the grouping information.
         spatial_x (str): The column name in the metadata that contains the x-coordinate of the spatial location.
@@ -789,6 +792,9 @@ def scdesign_fit(count_path,
         new_meta (pd.DataFrame): A DataFrame containing simulated spatial metadata for omics simulation, which is derived from the .meta of the simspace object.
         seed (int): The random seed for reproducibility.
         r_script_path (str): The path to the R script that performs the scDesign fitting. Default is None, which uses the script of simspace package.
+        family (str): Marginal family selection: ``'auto'``, ``'nb'``, or
+            ``'gaussian'``. The Gaussian pathway models ``log1p`` intensities and
+            returns simulated values on the original scale.
     Returns:
         tuple: A tuple containing two DataFrames:
             - sim_data: The simulated gene expression data.
@@ -811,14 +817,26 @@ def scdesign_fit(count_path,
         r_script_path = os.path.join(os.path.dirname(__file__), "R/scdesign.R")
     if not os.path.exists(r_script_path):
         raise FileNotFoundError(f"The R script {r_script_path} does not exist. Please provide a valid path.")
+    family = str(family).lower()
+    if family not in {"auto", "nb", "gaussian"}:
+        raise ValueError("family must be one of 'auto', 'nb', or 'gaussian'")
     if not os.path.exists("./tmp"):
         os.makedirs("./tmp")
         print("Temporary directory created.")
 
     new_meta.to_csv("./tmp/new_meta.csv", index=False)
 
+    command = [
+        "Rscript", r_script_path, meta_path, count_path, group_col,
+        spatial_x, spatial_y, str(seed),
+    ]
+    # Preserve compatibility with custom six-argument scripts when auto-detection
+    # is requested. The bundled script defaults a missing family argument to auto.
+    if family != "auto":
+        command.append(family)
+
     result = subprocess.run(
-        ["Rscript", r_script_path, meta_path, count_path, group_col, spatial_x, spatial_y, str(seed)],
+        command,
         capture_output=True,
         text=True
     )
@@ -828,7 +846,10 @@ def scdesign_fit(count_path,
         print(result.stderr)
         return None, None
     else:
-        print("scDesgin fit complete.")
+        for line in result.stdout.splitlines():
+            if line.startswith("Using scDesign3 family"):
+                print(line)
+        print("scDesign3 fit complete.")
         sim_data = pd.read_csv('./tmp/simulated_data.csv', sep=",", header=0, index_col=0)
         sim_meta = pd.read_csv('./tmp/simulated_meta.csv', sep=",", header=0, index_col=0)
         # Clean up temporary files

@@ -1,7 +1,7 @@
 # Welcome to SimSpace
 
 SimSpace generates spatial omics data with controllable tissue niches,
-cell-type organization, and molecular profiles. Version 0.4.0 supports both a
+cell-type organization, and molecular profiles. Version 0.4.1 supports both a
 Python API and a headless command-line interface.
 
 ## Install

@@ -2,14 +2,22 @@
 
 # Parse command line arguments
 args <- commandArgs(trailingOnly = TRUE)
+if (!length(args) %in% c(6, 7)) {
+  stop(paste(
+    "Usage: Rscript scdesign.R <cells_meta_path> <cells_omics_path>",
+    "<group_col> <spatial_x> <spatial_y> <seed> [auto|nb|gaussian]"
+  ))
+}
 cells_meta_path <- args[1]
 cells_omics_path <- args[2]
 group_col <- args[3]
 spatial_x <- args[4]
 spatial_y <- args[5]
 seed <- as.numeric(args[6])
-if (length(args) != 6) {
-  stop("Usage: Rscript scdesign.R <cells_meta_path> <cells_omics_path> <group_col> <spatial_x> <spatial_y> <seed>")
+requested_family <- if (length(args) == 7) tolower(args[7]) else "auto"
+valid_families <- c("auto", "nb", "gaussian")
+if (!requested_family %in% valid_families) {
+  stop(paste("Profile family must be one of:", paste(valid_families, collapse = ", ")))
 }
 
 # Load required packages
@@ -56,6 +64,41 @@ if (nrow(cells_meta) != ncol(cells_omics)) {
   }
 }
 
+omics_matrix <- as.matrix(cells_omics)
+suppressWarnings(storage.mode(omics_matrix) <- "double")
+if (!all(is.finite(omics_matrix))) {
+  stop("Reference profiles must contain only numeric, finite values.")
+}
+
+integer_tolerance <- 1e-8
+if (any(omics_matrix < -integer_tolerance)) {
+  stop("Reference profiles must be nonnegative.")
+}
+omics_matrix[omics_matrix < 0] <- 0
+integer_like <- all(abs(omics_matrix - round(omics_matrix)) <= integer_tolerance)
+
+if (requested_family == "auto") {
+  family_use <- if (integer_like) "nb" else "gaussian"
+} else {
+  family_use <- requested_family
+}
+if (family_use == "nb" && !integer_like) {
+  stop("The negative-binomial family requires integer-valued reference profiles.")
+}
+if (family_use == "nb") {
+  omics_matrix <- round(omics_matrix)
+}
+
+is_count_data <- family_use == "nb"
+assay_use <- if (is_count_data) "counts" else "logcounts"
+use_dt <- is_count_data
+cat(sprintf(
+  "Using scDesign3 family '%s' with assay '%s' (DT=%s).\n",
+  family_use,
+  assay_use,
+  if (use_dt) "TRUE" else "FALSE"
+))
+
 if (group_col %in% colnames(cells_meta)) {
   cells_meta$celltype <- cells_meta[[group_col]]
 } else {
@@ -73,7 +116,7 @@ if (spatial_y %in% colnames(cells_meta)) {
   stop(paste("Column", spatial_y, "not found in cells_meta"))
 }
 
-sce <- SingleCellExperiment(list(counts = cells_omics), colData = cells_meta)
+sce <- SingleCellExperiment(list(counts = omics_matrix), colData = cells_meta)
 counts(sce) <- as.matrix(counts(sce))
 logcounts(sce) <- log1p(counts(sce))
 
@@ -88,7 +131,7 @@ cat('Running scDesign3 simulation...\n')
 {
   example_data <- construct_data(
     sce = sce,
-    assay_use = "counts",
+    assay_use = assay_use,
     celltype = "celltype",
     pseudotime = NULL,
     spatial = NULL,
@@ -100,26 +143,28 @@ cat('Running scDesign3 simulation...\n')
     predictor = "gene",
     mu_formula = "celltype",
     sigma_formula = "celltype",
-    family_use = "nb",
+    family_use = family_use,
     n_cores = 6,
     usebam = FALSE,
     parallelization = "pbmcmapply"
   )
   example_copula <- fit_copula(
     sce = sce,
-    assay_use = "counts",
+    assay_use = assay_use,
     marginal_list = example_marginal,
-    family_use = "nb",
+    family_use = family_use,
     copula = "gaussian",
+    DT = use_dt,
     n_cores = 6,
     input_data = example_data$dat
   )
 
   example_para <- extract_para(
     sce = sce,
+    assay_use = assay_use,
     marginal_list = example_marginal,
     n_cores = 6,
-    family_use = "nb",
+    family_use = family_use,
     new_covariate = new_meta, 
     data = example_data$dat
   )
@@ -127,18 +172,24 @@ cat('Running scDesign3 simulation...\n')
 
 example_newcount <- simu_new(
     sce = sce,
+    assay_use = assay_use,
     mean_mat = example_para$mean_mat,
     sigma_mat = example_para$sigma_mat,
     zero_mat = example_para$zero_mat,
     quantile_mat = NULL,
     copula_list = example_copula$copula_list,
     n_cores = 6,
-    family_use = "nb",
+    family_use = family_use,
+    nonnegative = TRUE,
     input_data = example_data$dat,
     new_covariate = new_meta,
     important_feature = example_copula$important_feature,
     filtered_gene = example_data$filtered_gene
   )
+
+if (!is_count_data) {
+  example_newcount <- pmax(expm1(example_newcount), 0)
+}
 
 all_sim_counts <- example_newcount
 all_sim_meta <- new_meta
@@ -152,6 +203,6 @@ all_sim_meta$state <- new_meta$state
 rownames(all_sim_meta) <- paste0("cell_", seq_len(nrow(all_sim_meta)))
 colnames(all_sim_counts) <- rownames(all_sim_meta)
 
-cat('Saving simulated counts and metadata to CSV files...\n')
+cat('Saving simulated profiles and metadata to CSV files...\n')
 write.csv(all_sim_counts, './tmp/simulated_data.csv', row.names = TRUE, quote = FALSE)
 write.csv(all_sim_meta, './tmp/simulated_meta.csv', row.names = TRUE, quote = FALSE)

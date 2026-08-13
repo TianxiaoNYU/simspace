@@ -1062,18 +1062,24 @@ class SimSpace:
             spatial_y,
             seed = 0,
             isreturn=False,
+            family="auto",
             ):
         """
         Fit the scdesign model using the reference dataset. 
 
         Args:
-            ref_count_path (str): Path to the reference count matrix.
+            ref_count_path (str): Path to a nonnegative reference feature matrix.
+                Integer-valued data can be modeled as counts and continuous data as
+                intensities.
             ref_meta_path (str): Path to the reference metadata.
             group_col (str): Column name in the metadata for grouping in the simulation.
             spatial_x (str): Column name in the metadata for the x-coordinate of spatial data.
             spatial_y (str): Column name in the metadata for the y-coordinate of spatial data.
             seed (int): Random seed for reproducibility. Defaults to 0.
-            isreturn (bool): If True, return the simulated count matrix. Defaults to False.
+            isreturn (bool): If True, return the simulated feature matrix. Defaults to False.
+            family (str): ``'auto'`` selects negative-binomial marginals for
+                integer-valued data and log-Gaussian marginals for continuous data;
+                ``'nb'`` or ``'gaussian'`` explicitly selects either pathway.
 
         Raises:
             ValueError: If the reference dataset is too small or if scdesign_fit returns None for sim_meta or sim_count.
@@ -1110,7 +1116,10 @@ class SimSpace:
             spatial_y,
             self.meta,
             seed=seed,
+            family=family,
         )
+        if sim_count is None:
+            raise ValueError("scDesign3 simulation failed. Check the reference profiles and R output.")
         sim_count = sim_count.T
         
         self.omics = sim_count.copy()

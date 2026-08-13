@@ -182,8 +182,8 @@ def test_optional_profile_models_dispatch_without_running_r(tmp_path, monkeypatc
     output_dir = tmp_path / profile_model
     calls = []
 
-    def fake_adapter(self, count_path, meta_path, group_col, spatial_x, spatial_y, seed=0):
-        calls.append((count_path, meta_path, group_col, spatial_x, spatial_y, seed))
+    def fake_adapter(self, count_path, meta_path, group_col, spatial_x, spatial_y, seed=0, **kwargs):
+        calls.append((count_path, meta_path, group_col, spatial_x, spatial_y, seed, kwargs))
         self.omics = pd.DataFrame({"ReferenceGene": [1] * len(self.meta)})
 
     monkeypatch.setattr(SimSpace, method_name, fake_adapter)
@@ -202,7 +202,8 @@ def test_optional_profile_models_dispatch_without_running_r(tmp_path, monkeypatc
     assert cli.main(arguments) == 0
     _, profiles = _assert_output_contract(output_dir)
     assert list(profiles.columns) == ["cell_id", "ReferenceGene"]
-    assert calls == [(str(counts_path), str(reference_path), "cell_type", "x", "y", 7)]
+    expected_options = {"family": "auto"} if profile_model == "scdesign3" else {}
+    assert calls == [(str(counts_path), str(reference_path), "cell_type", "x", "y", 7, expected_options)]
 
 
 def test_cli_refuses_to_replace_outputs_without_overwrite(tmp_path):
