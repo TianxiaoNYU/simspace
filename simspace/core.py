@@ -889,8 +889,17 @@ class SimSpace:
             spatial_effect (float): The spatial effect parameter for spatial omics. Defaults to 3.
             se_threshold (float): The threshold for spatial effect. Defaults to 1.5.
             direct_spatial_effects (dict, optional): Opt-in configuration for direct
-                coordinate-conditioned effects on selected genes' log Poisson means.
-                The legacy phenotype-conditioned model is used when this is None.
+                fixed effects on selected genes' log Poisson means. Use
+                ``overall_coefficients`` for the treatment-coded base/reference
+                spatial term and
+                ``cell_type_coefficients`` for a nested
+                gene-to-cell-type-to-vector mapping of cell-type-by-space
+                interactions. ``reference_state`` identifies the treatment-coded
+                cell type whose interaction must be zero or omitted. The legacy
+                ``coefficients`` key remains an alias for
+                ``overall_coefficients``. The native library-size factor is one,
+                and the legacy phenotype-conditioned model is used when this is
+                None.
             technical_noise (dict, optional): Opt-in observation configuration.
                 Supported keys are ``capture_efficiency``, ``ambient_rate``,
                 ``ambient_profile``, and ``seed``.

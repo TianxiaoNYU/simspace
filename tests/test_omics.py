@@ -4,6 +4,7 @@ warnings.filterwarnings("ignore")
 
 import numpy as np
 import pandas as pd
+import pytest
 from pandas.testing import assert_frame_equal
 
 from simspace import SimSpace, omics
@@ -64,6 +65,217 @@ def test_direct_spatial_effect_changes_only_selected_gene_mean():
     assert spatial_mean.loc[1, 'Gene_0'] > spatial_mean.loc[0, 'Gene_0']
     assert spatial_mean.loc[3, 'Gene_0'] > spatial_mean.loc[2, 'Gene_0']
     assert_frame_equal(spatial_mean[['Gene_1']], baseline_mean[['Gene_1']])
+
+
+def test_overall_coefficients_is_exact_alias_for_legacy_coefficients():
+    meta, gene_meta = _small_omics_inputs()
+    legacy = omics.simOmicsWithSpatialEffects(
+        gene_meta,
+        meta,
+        direct_spatial_effects={
+            'genes': ['Gene_0'],
+            'basis': 'linear',
+            'coefficients': {'Gene_0': [0.75, -0.25]},
+        },
+        seed=15,
+    )
+    explicit = omics.simOmicsWithSpatialEffects(
+        gene_meta,
+        meta,
+        direct_spatial_effects={
+            'genes': ['Gene_0'],
+            'basis': 'linear',
+            'overall_coefficients': {'Gene_0': [0.75, -0.25]},
+        },
+        seed=15,
+    )
+
+    for legacy_frame, explicit_frame in zip(legacy, explicit):
+        assert_frame_equal(legacy_frame, explicit_frame)
+
+
+def test_cell_type_only_fixed_effect_matches_declared_interaction():
+    meta, gene_meta = _small_omics_inputs()
+    baseline_mean = omics.buildOmicsMean(gene_meta, meta)
+    counts, spatial_mean, gene_truth, design = omics.simOmicsWithSpatialEffects(
+        gene_meta,
+        meta,
+        direct_spatial_effects={
+            'genes': ['Gene_0'],
+            'basis': 'linear',
+            'cell_type_coefficients': {
+                'Gene_0': {
+                    1: [2.0, 0.0],
+                },
+            },
+            'reference_state': 0,
+        },
+        seed=21,
+    )
+
+    expected_log_effect = np.zeros(len(meta), dtype=float)
+    state_one = meta['state'].to_numpy() == 1
+    expected_log_effect[state_one] = 2.0 * design.loc[state_one, 'row_linear']
+    observed_log_effect = np.log(
+        spatial_mean['Gene_0'].to_numpy()
+        / baseline_mean['Gene_0'].to_numpy()
+    )
+
+    np.testing.assert_allclose(observed_log_effect, expected_log_effect)
+    assert_frame_equal(
+        spatial_mean.loc[~state_one, ['Gene_0']],
+        baseline_mean.loc[~state_one, ['Gene_0']],
+    )
+    assert counts.shape == spatial_mean.shape
+    assert gene_truth.loc[0, 'reference_state'] == 0
+    assert gene_truth.loc[0, 'overall_coefficient_0'] == 0.0
+    assert gene_truth.loc[0, 'cell_type_1_coefficient_0'] == 2.0
+    assert not gene_truth.loc[0, 'has_overall_spatial_term']
+    assert gene_truth.loc[0, 'has_cell_type_spatial_terms']
+
+
+def test_overall_and_cell_type_terms_follow_fixed_effect_equation():
+    meta, gene_meta = _small_omics_inputs()
+    baseline_mean = omics.buildOmicsMean(gene_meta, meta)
+    _, spatial_mean, gene_truth, design = omics.simOmicsWithSpatialEffects(
+        gene_meta,
+        meta,
+        direct_spatial_effects={
+            'genes': ['Gene_0'],
+            'basis': 'linear',
+            'overall_coefficients': {'Gene_0': [0.5, 0.0]},
+            'cell_type_coefficients': {
+                'Gene_0': {
+                    1: [0.0, 1.25],
+                },
+            },
+            'reference_state': 0,
+        },
+        seed=22,
+    )
+
+    expected_log_effect = 0.5 * design['row_linear'].to_numpy()
+    state_one = meta['state'].to_numpy() == 1
+    expected_log_effect[state_one] += (
+        1.25 * design.loc[state_one, 'col_linear'].to_numpy()
+    )
+    observed_log_effect = np.log(
+        spatial_mean['Gene_0'].to_numpy()
+        / baseline_mean['Gene_0'].to_numpy()
+    )
+
+    np.testing.assert_allclose(observed_log_effect, expected_log_effect)
+    assert gene_truth.loc[0, 'has_overall_spatial_term']
+    assert gene_truth.loc[0, 'has_cell_type_spatial_terms']
+
+
+@pytest.mark.parametrize(
+    ('basis', 'basis_options', 'basis_column'),
+    [
+        ('radial', {'center': [0.5, 0.5]}, 'radial_distance'),
+        (
+            'hotspot',
+            {'center': [0.5, 0.5], 'bandwidth': 0.4},
+            'hotspot_basis',
+        ),
+        (
+            'structure_distance',
+            {'structure_points': [[0.0, 0.0], [1.0, 1.0]]},
+            'structure_distance',
+        ),
+    ],
+)
+def test_cell_type_interactions_support_scalar_spatial_bases(
+        basis,
+        basis_options,
+        basis_column,
+        ):
+    meta, gene_meta = _small_omics_inputs()
+    baseline_mean = omics.buildOmicsMean(gene_meta, meta)
+    config = {
+        'genes': ['Gene_0'],
+        'basis': basis,
+        'cell_type_coefficients': {'Gene_0': {1: [1.25]}},
+        'reference_state': 0,
+        **basis_options,
+    }
+    _, spatial_mean, _, design = omics.simOmicsWithSpatialEffects(
+        gene_meta,
+        meta,
+        direct_spatial_effects=config,
+        seed=24,
+    )
+
+    state_one = meta['state'].to_numpy() == 1
+    expected_log_effect = np.zeros(len(meta), dtype=float)
+    expected_log_effect[state_one] = (
+        1.25 * design.loc[state_one, basis_column].to_numpy()
+    )
+    observed_log_effect = np.log(
+        spatial_mean['Gene_0'].to_numpy()
+        / baseline_mean['Gene_0'].to_numpy()
+    )
+    np.testing.assert_allclose(observed_log_effect, expected_log_effect)
+
+
+def test_zero_cell_type_interactions_match_legacy_counts():
+    meta, gene_meta = _small_omics_inputs()
+    legacy = omics.simOmics(gene_meta, meta, seed=18)
+    extended, latent_mean, gene_truth, _ = omics.simOmicsWithSpatialEffects(
+        gene_meta,
+        meta,
+        direct_spatial_effects={
+            'genes': ['Gene_0'],
+            'basis': 'linear',
+            'cell_type_coefficients': {
+                'Gene_0': {
+                    0: [0.0, 0.0],
+                    1: [0.0, 0.0],
+                },
+            },
+            'reference_state': 0,
+        },
+        seed=18,
+    )
+
+    assert_frame_equal(extended, legacy)
+    assert_frame_equal(latent_mean, omics.buildOmicsMean(gene_meta, meta))
+    assert not gene_truth.loc[0, 'has_overall_spatial_term']
+    assert not gene_truth.loc[0, 'has_cell_type_spatial_terms']
+
+
+def test_reference_state_interaction_must_be_zero():
+    meta, gene_meta = _small_omics_inputs()
+    with pytest.raises(ValueError, match='reference_state.*must be zero or omitted'):
+        omics.simOmicsWithSpatialEffects(
+            gene_meta,
+            meta,
+            direct_spatial_effects={
+                'genes': ['Gene_0'],
+                'basis': 'linear',
+                'cell_type_coefficients': {
+                    'Gene_0': {
+                        0: [1.0, 0.0],
+                    },
+                },
+                'reference_state': 0,
+            },
+            seed=19,
+        )
+
+
+def test_direct_spatial_effect_requires_at_least_one_spatial_term():
+    meta, gene_meta = _small_omics_inputs()
+    with pytest.raises(ValueError, match='at least one spatial term'):
+        omics.simOmicsWithSpatialEffects(
+            gene_meta,
+            meta,
+            direct_spatial_effects={
+                'genes': ['Gene_0'],
+                'basis': 'linear',
+            },
+            seed=20,
+        )
 
 
 def test_observation_components_are_exact_noops_when_disabled():

@@ -146,28 +146,153 @@ def _resolve_spatial_genes(omics_meta: pd.DataFrame, genes) -> list[int]:
     return resolved
 
 
-def _coefficient_vector(coefficients, gene_name: str, gene_id, n_basis: int) -> np.ndarray:
-    """Return one coefficient vector from a shared vector or gene-keyed mapping."""
-    coefficient_value = coefficients
-    if isinstance(coefficients, dict):
-        for key in (gene_name, gene_id, str(gene_id)):
-            if key in coefficients:
-                coefficient_value = coefficients[key]
-                break
-        else:
-            raise ValueError(f'No coefficient vector was provided for {gene_name}.')
-
+def _validate_coefficient_vector(
+        coefficient_value,
+        gene_name: str,
+        n_basis: int,
+        coefficient_name: str,
+        ) -> np.ndarray:
+    """Validate one finite coefficient vector for a configured spatial term."""
     coefficient_vector = np.asarray(coefficient_value, dtype=float)
     if coefficient_vector.ndim == 0:
         coefficient_vector = coefficient_vector.reshape(1)
     if coefficient_vector.shape != (n_basis,):
         raise ValueError(
-            f'Coefficients for {gene_name} must contain {n_basis} value(s); '
+            f'{coefficient_name} for {gene_name} must contain {n_basis} value(s); '
             f'received shape {coefficient_vector.shape}.'
         )
     if not np.isfinite(coefficient_vector).all():
-        raise ValueError(f'Coefficients for {gene_name} must be finite.')
+        raise ValueError(f'{coefficient_name} for {gene_name} must be finite.')
     return coefficient_vector
+
+
+def _coefficient_vector(
+        coefficients,
+        gene_name: str,
+        gene_id,
+        n_basis: int,
+        coefficient_name: str = 'Coefficients',
+        ) -> np.ndarray:
+    """Return one coefficient vector from a shared vector or gene-keyed mapping."""
+    coefficient_value = coefficients
+    if isinstance(coefficients, dict):
+        matching_keys = []
+        for key in (gene_name, gene_id, str(gene_id)):
+            if key in coefficients and key not in matching_keys:
+                matching_keys.append(key)
+        if len(matching_keys) > 1:
+            raise ValueError(
+                f'{coefficient_name} provides multiple aliases for {gene_name}: '
+                f'{matching_keys}.'
+            )
+        if not matching_keys:
+            raise ValueError(f'No {coefficient_name.lower()} was provided for {gene_name}.')
+        coefficient_value = coefficients[matching_keys[0]]
+
+    return _validate_coefficient_vector(
+        coefficient_value,
+        gene_name,
+        n_basis,
+        coefficient_name,
+    )
+
+
+def _resolve_reference_state(meta: pd.DataFrame, configured_reference):
+    """Resolve the treatment-coded reference state used by spatial interactions."""
+    states = list(pd.unique(meta['state']))
+    if len(states) == 0:
+        raise ValueError('Cell metadata must contain at least one state.')
+    reference_state = states[0] if configured_reference is None else configured_reference
+    if reference_state not in states:
+        raise ValueError(
+            f'reference_state {reference_state!r} is not present in cell metadata; '
+            f'available states are {states}.'
+        )
+    return reference_state, states
+
+
+def _matching_state_key(mapping: dict, state):
+    """Return the unique configured key that denotes one cell state."""
+    candidates = []
+    for key in (state, str(state), f'Type_{state}'):
+        if key in mapping and key not in candidates:
+            candidates.append(key)
+    if len(candidates) > 1:
+        raise ValueError(
+            f'cell_type_coefficients provides multiple aliases for state {state!r}: '
+            f'{candidates}.'
+        )
+    return candidates[0] if candidates else None
+
+
+def _cell_type_coefficient_vectors(
+        coefficients: dict,
+        gene_name: str,
+        gene_id,
+        states: list,
+        reference_state,
+        n_basis: int,
+        *,
+        required: bool,
+        ) -> dict:
+    """Resolve treatment-coded cell-type-by-space coefficient vectors for one gene."""
+    if not isinstance(coefficients, dict):
+        raise TypeError(
+            'cell_type_coefficients must be a gene-to-cell-type-to-vector mapping.'
+        )
+
+    gene_keys = []
+    for key in (gene_name, gene_id, str(gene_id)):
+        if key in coefficients and key not in gene_keys:
+            gene_keys.append(key)
+    if len(gene_keys) > 1:
+        raise ValueError(
+            f'cell_type_coefficients provides multiple aliases for {gene_name}: '
+            f'{gene_keys}.'
+        )
+    if not gene_keys:
+        if required:
+            raise ValueError(
+                f'No cell-type coefficient mapping was provided for {gene_name}.'
+            )
+        return {state: np.zeros(n_basis, dtype=float) for state in states}
+
+    state_mapping = coefficients[gene_keys[0]]
+    if not isinstance(state_mapping, dict):
+        raise TypeError(
+            f'cell_type_coefficients for {gene_name} must map cell types to vectors.'
+        )
+
+    matched_keys = {}
+    resolved = {}
+    for state in states:
+        key = _matching_state_key(state_mapping, state)
+        matched_keys[state] = key
+        resolved[state] = (
+            np.zeros(n_basis, dtype=float)
+            if key is None
+            else _validate_coefficient_vector(
+                state_mapping[key],
+                gene_name,
+                n_basis,
+                f'Cell-type coefficients for state {state!r}',
+            )
+        )
+
+    recognized_keys = {key for key in matched_keys.values() if key is not None}
+    unknown_keys = [key for key in state_mapping if key not in recognized_keys]
+    if unknown_keys:
+        raise ValueError(
+            f'Unknown cell type(s) for {gene_name}: {unknown_keys}; '
+            f'available states are {states}.'
+        )
+
+    if not np.allclose(resolved[reference_state], 0.0, rtol=0.0, atol=0.0):
+        raise ValueError(
+            f'The cell-type spatial interaction for reference_state '
+            f'{reference_state!r} must be zero or omitted for identifiability.'
+        )
+    return resolved
 
 
 def simOmicsWithSpatialEffects(
@@ -176,36 +301,106 @@ def simOmicsWithSpatialEffects(
         direct_spatial_effects: dict,
         seed: int = 0,
         ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Simulate counts with opt-in direct spatial effects on Poisson means.
+    """Simulate counts with finite-basis fixed spatial effects on Poisson means.
 
-    The existing phenotype-conditioned means are multiplied by
-    ``exp(B @ gamma_g)`` only for explicitly selected genes.  A zero
-    coefficient vector therefore recovers the legacy mean and, for the same
-    seed, the legacy count realization.
+    For a selected gene ``g``, this implements the single-cell specialization
+    of a fixed-effect cell-type-specific SVG model,
+
+    ``log(mu_ig) = log(lambda_ig) + B(s_i) @ eta_g0``
+    ``              + sum_k c_ik * B(s_i) @ eta_gk``,
+
+    where ``lambda_ig`` is the existing phenotype-conditioned baseline,
+    ``c_ik`` is the indicator for cell type ``k``, and the current native path
+    has library-size factor ``ell_i = 1``.  ``overall_coefficients`` supplies
+    ``eta_g0`` and ``cell_type_coefficients`` is a nested
+    gene-to-cell-type-to-vector mapping supplying ``eta_gk``.  The historical
+    ``coefficients`` key remains an alias for ``overall_coefficients``.
+
+    Cell-type interactions use treatment coding: ``reference_state`` defaults
+    to the first observed state, and its interaction vector must be zero or
+    omitted.  Thus, ``eta_g0`` is the spatial surface shared by all states and,
+    because the reference interaction is zero, also the reference state's
+    total surface.  A non-reference state ``k`` has total surface
+    ``eta_g0 + eta_gk``.  This removes the redundant shared/reference
+    interaction.  A zero overall vector
+    with nonzero non-reference interactions supports a
+    cell-type-only spatial effect.  Zero vectors recover the legacy mean and,
+    for the same seed, the legacy count realization.
     """
     if not isinstance(direct_spatial_effects, dict):
         raise TypeError('direct_spatial_effects must be a dictionary or None.')
-    if 'coefficients' not in direct_spatial_effects:
-        raise ValueError('direct_spatial_effects must provide "coefficients".')
+    if (
+        'coefficients' in direct_spatial_effects
+        and 'overall_coefficients' in direct_spatial_effects
+    ):
+        raise ValueError(
+            'Use either legacy "coefficients" or "overall_coefficients", not both.'
+        )
+    overall_key = (
+        'overall_coefficients'
+        if 'overall_coefficients' in direct_spatial_effects
+        else 'coefficients'
+        if 'coefficients' in direct_spatial_effects
+        else None
+    )
+    has_cell_type_coefficients = 'cell_type_coefficients' in direct_spatial_effects
+    if overall_key is None and not has_cell_type_coefficients:
+        raise ValueError(
+            'direct_spatial_effects must provide at least one spatial term via '
+            '"overall_coefficients", legacy "coefficients", or '
+            '"cell_type_coefficients".'
+        )
 
     latent_mean = buildOmicsMean(omics_meta, meta)
     design_frame, basis = _build_spatial_basis(meta, direct_spatial_effects)
+    reference_state, states = _resolve_reference_state(
+        meta,
+        direct_spatial_effects.get('reference_state'),
+    )
     selected_positions = _resolve_spatial_genes(
         omics_meta,
         direct_spatial_effects.get('genes'),
     )
+    state_values = meta['state'].to_numpy()
 
     truth_rows = []
     for position in selected_positions:
         gene_id = omics_meta['GeneID'].iloc[position]
         gene_name = f'Gene_{gene_id}'
-        coefficients = _coefficient_vector(
-            direct_spatial_effects['coefficients'],
-            gene_name,
-            gene_id,
-            basis.shape[1],
+        overall_coefficients = (
+            np.zeros(basis.shape[1], dtype=float)
+            if overall_key is None
+            else _coefficient_vector(
+                direct_spatial_effects[overall_key],
+                gene_name,
+                gene_id,
+                basis.shape[1],
+                'Overall coefficients',
+            )
         )
-        linear_predictor = basis @ coefficients
+        cell_type_coefficients = (
+            {state: np.zeros(basis.shape[1], dtype=float) for state in states}
+            if not has_cell_type_coefficients
+            else _cell_type_coefficient_vectors(
+                direct_spatial_effects['cell_type_coefficients'],
+                gene_name,
+                gene_id,
+                states,
+                reference_state,
+                basis.shape[1],
+                required=overall_key is None,
+            )
+        )
+
+        linear_predictor = basis @ overall_coefficients
+        for state in states:
+            if state == reference_state:
+                continue
+            state_mask = state_values == state
+            if np.any(state_mask):
+                linear_predictor[state_mask] += (
+                    basis[state_mask, :] @ cell_type_coefficients[state]
+                )
         if not np.isfinite(linear_predictor).all():
             raise ValueError(f'The spatial linear predictor for {gene_name} is not finite.')
         if np.max(np.abs(linear_predictor)) > 50:
@@ -223,9 +418,32 @@ def simOmicsWithSpatialEffects(
             'min_log_effect': float(linear_predictor.min()),
             'max_log_effect': float(linear_predictor.max()),
             'mean_multiplier': float(multiplier.mean()),
+            'reference_state': reference_state,
+            'has_overall_spatial_term': bool(
+                np.any(overall_coefficients != 0.0)
+            ),
+            'has_cell_type_spatial_terms': bool(
+                any(
+                    np.any(coefficients != 0.0)
+                    for state, coefficients in cell_type_coefficients.items()
+                    if state != reference_state
+                )
+            ),
         }
-        for coefficient_index, coefficient in enumerate(coefficients):
+        for coefficient_index, coefficient in enumerate(overall_coefficients):
+            # Preserve the historical truth column while adding an explicit name.
             truth_row[f'coefficient_{coefficient_index}'] = float(coefficient)
+            truth_row[f'overall_coefficient_{coefficient_index}'] = float(coefficient)
+        for state in states:
+            for coefficient_index, coefficient in enumerate(
+                cell_type_coefficients[state]
+            ):
+                truth_row[
+                    f'cell_type_{state}_coefficient_{coefficient_index}'
+                ] = float(coefficient)
+                truth_row[
+                    f'cell_type_{state}_total_coefficient_{coefficient_index}'
+                ] = float(overall_coefficients[coefficient_index] + coefficient)
         truth_rows.append(truth_row)
 
     np.random.seed(seed)

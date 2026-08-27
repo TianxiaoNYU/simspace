@@ -197,6 +197,39 @@ sim.plot()
 Advanced direct spatial-expression and observation-effect controls remain
 available through `SimSpace.create_omics()` in the Python API.
 
+For selected genes, the direct spatial layer uses a finite-basis specialization
+of the regression fixed-effect mean summarized by
+[Yan et al. (2025)](https://doi.org/10.1038/s41467-025-56080-w), with
+[spVC](https://doi.org/10.1186/s13059-024-03245-3) providing the closest
+primary precedent. SimSpace uses this structure for efficient generation and
+truth export; it does not reproduce those methods' inferential procedures.
+Under treatment coding, `overall_coefficients` supplies the spatial surface
+shared across cell types and therefore the total surface for `reference_state`,
+while `cell_type_coefficients` adds cell-type-by-space deviations. A
+non-reference cell type's total surface is the sum of the shared surface and
+its deviation. The
+interaction for `reference_state` must be zero or omitted
+for identifiability; the current native library-size factor is one. For
+example, this adds an overall row gradient to `Gene_0` and an additional
+column gradient in cell type 1 relative to reference cell type 0:
+
+```python
+sim.create_omics(
+    n_genes=100,
+    spatial=False,
+    direct_spatial_effects={
+        "genes": ["Gene_0"],
+        "basis": "linear",
+        "overall_coefficients": {"Gene_0": [0.5, 0.0]},
+        "cell_type_coefficients": {"Gene_0": {1: [0.0, 0.75]}},
+        "reference_state": 0,
+    },
+)
+```
+
+The older `coefficients` key remains an alias for `overall_coefficients`, so
+existing configurations and same-seed outputs are unchanged.
+
 ## Tutorials and documentation
 
 - [Tutorial guide](tutorials.md)
