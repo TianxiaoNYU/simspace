@@ -156,6 +156,18 @@ separation, and the `phi` range controls overall spatial smoothness. Use a
 saved `parameters.json` when exact affinities or densities should be edited
 directly.
 
+## Design a reference-free parameter JSON
+
+For a complete guide to the six-field JSON schema, affinity-vector ordering,
+a runnable hand-designed example, parameter-tuning checks, and the additional
+custom geometry used for the cortex-inspired manuscript Figure 3, see
+[Designing reference-free SimSpace parameter JSON files](REFERENCE_FREE_PARAMETER_README.md).
+
+The guide also explains an important boundary: a standard `--params` file
+controls niche and cell-type affinities, density, and MRF smoothness, whereas
+tissue masks, curved niche boundaries, named cell types, colors, and custom
+marker programs are supplied through the Python workflow.
+
 ## Background and batch execution
 
 The CLI is noninteractive and uses headless plotting, so either simulation
