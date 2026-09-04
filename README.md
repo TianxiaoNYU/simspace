@@ -2,6 +2,7 @@
 
 [![Docs](https://readthedocs.org/projects/simspace/badge/?version=latest)](https://simspace.readthedocs.io/en/latest/)
 [![PyPI](https://img.shields.io/pypi/v/simspace.svg)](https://pypi.org/project/simspace/)
+[![DOI:10.1101/2025.07.18.665587](https://img.shields.io/badge/DOI-10.1101/2025.07.18.665587-B31B1B.svg)](https://doi.org/10.1101/2025.07.18.665587) 
 
 **SimSpace** is a Python framework for generating spatial omics data with
 controllable tissue niches, cell-type organization, and molecular profiles.
